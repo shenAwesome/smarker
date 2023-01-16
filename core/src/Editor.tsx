@@ -1,20 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import './Editor.scss'
-import MarkdownIt from 'markdown-it'
-import _ from 'lodash'
-
-import {
-  Alignment,
-  Button,
-  ButtonGroup, Navbar,
-  NavbarDivider,
-  NavbarGroup
-} from "@blueprintjs/core"
-
+import { Alignment, Button, ButtonGroup, Navbar, NavbarDivider, NavbarGroup } from "@blueprintjs/core"
 import MonacoEditor from "@monaco-editor/react"
-
-// need to fix the SplitPaneProps, adding children: React.ReactNode
+import _ from 'lodash'
+import MarkdownIt from 'markdown-it'
+import { useEffect, useRef, useState } from 'react'
 import SplitPane from 'react-split-pane'
+import './Editor.scss'
 import { InjectLineNumber } from './plugins/InjectLineNumber'
 
 function useStorage(key: string, defaultValue = "") {
@@ -37,8 +27,7 @@ let decorations = [] as any[]
 
 function setDecorations(from: number, to: number) {
   decorations = editor.deltaDecorations(decorations, [{
-    range: new monaco.Range(from, 1, to, 1),
-    options: {
+    range: new monaco.Range(from, 1, to, 1), options: {
       isWholeLine: true,
       className: 'myContentClass',
       glyphMarginClassName: 'myGlyphMarginClass'
