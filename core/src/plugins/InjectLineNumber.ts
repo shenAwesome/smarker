@@ -7,8 +7,7 @@ import Token from "markdown-it/lib/token"
 function injectLineNumbers(tokens: Token[], idx: number, options: MarkdownIt.Options, env: any, slf: Renderer) {
     const token = tokens[idx]
     if (token.map) {
-        const line = token.map[0] + 1
-        token.attrSet('x-src', String(line))
+        token.attrSet('x-src', String(token.map.join(":")))
     }
     return slf.renderToken(tokens, idx, options)
 }
@@ -17,6 +16,7 @@ function injectLineNumbers(tokens: Token[], idx: number, options: MarkdownIt.Opt
 function InjectLineNumber(md: MarkdownIt) {
     md.renderer.rules.paragraph_open = injectLineNumbers
     md.renderer.rules.heading_open = injectLineNumbers
+    md.renderer.rules.table_open = injectLineNumbers
 }
 
 export { InjectLineNumber }

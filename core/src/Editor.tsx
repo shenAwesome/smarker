@@ -2,10 +2,11 @@ import { Alignment, Button, ButtonGroup, Navbar, NavbarDivider, NavbarGroup } fr
 import MonacoEditor from "@monaco-editor/react"
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
-import { useEffect, useRef, useState } from 'react'
+import { SyntheticEvent, useEffect, useRef, useState } from 'react'
 import SplitPane from 'react-split-pane'
 import './Editor.scss'
 import { InjectLineNumber } from './plugins/InjectLineNumber'
+import $ from "cash-dom"
 
 function useStorage(key: string, defaultValue = "") {
   const value = localStorage.getItem(key) || defaultValue
@@ -21,18 +22,35 @@ function useStorageInt(key: string, defaultValue = 0): [number, (val: number) =>
 }
 
 
+class Block {
+  start = 0
+  end = 0
+  constructor(str: string) {
+    [this.start, this.end] = str.split(":").map(s => parseInt(s))
+  }
+}
+
 let monaco = null as any
 let editor = null as any
 let decorations = [] as any[]
+const blocks = [] as Block[]
 
-function setDecorations(from: number, to: number) {
+function highlight(from: number, to: number) {
+  if (!editor) return
   decorations = editor.deltaDecorations(decorations, [{
     range: new monaco.Range(from, 1, to, 1), options: {
       isWholeLine: true,
-      className: 'myContentClass',
-      glyphMarginClassName: 'myGlyphMarginClass'
+      linesDecorationsClassName: 'Decoration-highlight'
     }
   }])
+}
+
+function highlightBlock(index: number) {
+  const block = blocks[index]
+  if (block) {
+    console.log('block: ', block)
+    highlight(block.start + 1, block.end)
+  }
 }
 
 //todo, to use parent , not window
@@ -50,8 +68,9 @@ function App() {
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const minSize = 200
   const monacoOptions = {
-    glyphMargin: true,
+    glyphMargin: false,
     smoothScrolling: true,
+    lineNumbersMinChars: 3,
     minimap: {
       enabled: false,
     }
@@ -64,6 +83,12 @@ function App() {
     const md = new MarkdownIt()
     md.use(InjectLineNumber)
     mdView.current.innerHTML = md.render(text)
+    blocks.length = 0
+    $(mdView.current).find('[x-src]').each((i, ele) => {
+      $(ele).attr('x-block', blocks.length.toString())
+      blocks.push(new Block($(ele).attr('x-src')))
+    })
+    console.log('blocks: ', blocks)
   }, [text])
 
   const onViewScroll = () => {
@@ -76,7 +101,7 @@ function App() {
     const lineNum = parseInt(topEle.getAttribute('x-src'))
     const top = topEle.getBoundingClientRect().top
     editor.revealLineNearTop(lineNum, lineNum, 0)
-    setDecorations(lineNum, lineNum)
+    //setDecorations(lineNum, lineNum)
     console.log('lineNum: ', lineNum)
   }
 
@@ -93,6 +118,20 @@ function App() {
       console.log(evt)//todo , sync view
     })
   }
+
+  const [selected, setSelected] = useState(-1)
+
+  function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>): void {
+    const target = (event.target as HTMLElement).closest('[x-src]')
+    const blockIdx = target ? parseInt(target.getAttribute('x-block')) : -1
+    setSelected(blockIdx)
+  }
+
+  useEffect(() => {
+    $(mdView.current).find(`[x-block]`).removeClass('selected')
+    $(mdView.current).find(`[x-block='${selected}']`).addClass('selected')
+    highlightBlock(selected)
+  })
 
   return (
     <div className="MDEditor" >
@@ -114,7 +153,7 @@ function App() {
             </NavbarGroup>
           </Navbar>
           <main>
-            <MonacoEditor height="100%"
+            <MonacoEditor height="100%" theme="vs-dark"
               defaultLanguage="markdown" defaultValue={text}
               options={monacoOptions} onChange={_setText}
               onMount={editorMounted}
@@ -122,7 +161,7 @@ function App() {
           </main>
         </div>
         <div className='SPane right' onScroll={onViewScroll}>
-          <div className='mdView' ref={mdView}></div>
+          <div className='mdView' ref={mdView} onClick={viewClicked}></div>
         </div>
       </SplitPane>
     </div>

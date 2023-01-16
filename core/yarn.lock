@@ -567,6 +567,11 @@ capital-case@^1.0.4:
     tslib "^2.0.3"
     upper-case-first "^2.0.2"
 
+cash-dom@^8.1.2:
+  version "8.1.2"
+  resolved "https://registry.yarnpkg.com/cash-dom/-/cash-dom-8.1.2.tgz#f5bdc122fb2b4c3b014f4d08e8fef419159157ab"
+  integrity sha512-psFPAgakPmqf7CYeDw58/TcafQtNX+VjZ+8vhSEwiW9KeF8PDHzl1huz7bHasCFyK7j/4NSQSRIOLR2LaKUTcA==
+
 chalk@^2.0.0:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"

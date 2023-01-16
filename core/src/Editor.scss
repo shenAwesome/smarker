@@ -29,15 +29,19 @@
     }
 
     &.right {
-      background: black;
-      color: white;
+      background: white;
+      color: black;
       overflow: auto;
       position: relative;
 
-      >div {
+      >.mdView {
         overflow: hidden;
         position: absolute;
         padding: 1em;
+        .selected{
+          outline: 2px solid cyan;
+          outline-offset: 5px;
+        }
       }
     }
   }
@@ -45,4 +49,10 @@
 
 .myGlyphMarginClass {
   background-color: red;
+}
+
+.Decoration-highlight {
+	background: cyan;
+	width: 5px !important;
+	margin-left: 3px;
 }
