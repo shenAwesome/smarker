@@ -1,0 +1,48 @@
+.MDEditor {
+  position: fixed;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: silver;
+  display: flex;
+  flex-direction: column;
+  cursor: default;
+
+
+  >.toolbar {
+    flex: 0 0 auto;
+  }
+
+  .SPane {
+    height: 100%;
+    overflow: hidden;
+
+    &.left {
+      background: white;
+      display: flex;
+      flex-direction: column;
+
+      >main {
+        flex: 1 1 auto;
+
+      }
+    }
+
+    &.right {
+      background: black;
+      color: white;
+      overflow: auto;
+      position: relative;
+
+      >div {
+        overflow: hidden;
+        position: absolute;
+        padding: 1em;
+      }
+    }
+  }
+}
+
+.myGlyphMarginClass {
+  background-color: red;
+}

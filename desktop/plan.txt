@@ -1,0 +1,6 @@
+markdown
+mermaid
+monaco-editor
+@monaco-editor/react
+http://react-split-pane-v2.surge.sh/?SimpleExample
+blueprintjs
