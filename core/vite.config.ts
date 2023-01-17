@@ -3,7 +3,6 @@ import { splitVendorChunkPlugin } from 'vite'
 //import { visualizer } from "rollup-plugin-visualizer" 
 
 export default defineConfig({
-  //plugins: [splitVendorChunkPlugin(), visualizer(), cesium()],
   plugins: [splitVendorChunkPlugin()],
   base: '',
   server: {

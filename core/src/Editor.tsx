@@ -1,12 +1,17 @@
-import { Alignment, Button, ButtonGroup, Navbar, NavbarDivider, NavbarGroup } from "@blueprintjs/core"
-import MonacoEditor from "@monaco-editor/react"
+
+import $ from "cash-dom"
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
+import * as monaco from 'monaco-editor'
 import { SyntheticEvent, useEffect, useRef, useState } from 'react'
 import SplitPane from 'react-split-pane'
-import './Editor.scss'
+import './css/Editor.scss'
+import './manaco/userWorker'
 import { InjectLineNumber } from './plugins/InjectLineNumber'
-import $ from "cash-dom"
+
+console.log(self.MonacoEnvironment);
+
+monaco.languages.register({ id: 'mermaid' })
 
 function useStorage(key: string, defaultValue = "") {
   const value = localStorage.getItem(key) || defaultValue
@@ -23,21 +28,50 @@ function useStorageInt(key: string, defaultValue = 0): [number, (val: number) =>
 
 
 class Block {
+  index = -1
   start = 0
   end = 0
   constructor(str: string) {
     [this.start, this.end] = str.split(":").map(s => parseInt(s))
+    this.start = this.start + 1
   }
 }
 
-let monaco = null as any
-let editor = null as any
-let decorations = [] as any[]
-const blocks = [] as Block[]
+class Blocks {
+  private blocks: Block[] = []
+
+  get(index: number) {
+    return this.blocks[index]
+  }
+
+  getByLine(lineNumber: number) {
+    return this.blocks.find(b => {
+      return lineNumber >= b.start && lineNumber <= b.end
+    })
+  }
+
+  addBlock(blockStr: string) {
+    const block = new Block(blockStr)
+    block.index = this.blocks.length
+    this.blocks.push(block)
+  }
+  clear() {
+    this.blocks.length = 0
+  }
+  get length() {
+    return this.blocks.length
+  }
+}
+
+
+let editor = null as monaco.editor.IStandaloneCodeEditor
+let decorations = null as monaco.editor.IEditorDecorationsCollection
+const blocks = new Blocks()
 
 function highlight(from: number, to: number) {
   if (!editor) return
-  decorations = editor.deltaDecorations(decorations, [{
+  if (decorations) decorations.clear()
+  decorations = editor.createDecorationsCollection([{
     range: new monaco.Range(from, 1, to, 1), options: {
       isWholeLine: true,
       linesDecorationsClassName: 'Decoration-highlight'
@@ -46,10 +80,10 @@ function highlight(from: number, to: number) {
 }
 
 function highlightBlock(index: number) {
-  const block = blocks[index]
+  const block = blocks.get(index)
   if (block) {
     console.log('block: ', block)
-    highlight(block.start + 1, block.end)
+    highlight(block.start, block.end)
   }
 }
 
@@ -65,28 +99,67 @@ function isInViewport(elem: HTMLElement) {
 }
 
 function App() {
+
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const minSize = 200
-  const monacoOptions = {
-    glyphMargin: false,
-    smoothScrolling: true,
-    lineNumbersMinChars: 3,
-    minimap: {
-      enabled: false,
-    }
-  }
+  const sample = `
+  # hello
 
-  const [text, setText] = useState("HelloWorld")
+  # hello world 
+  
+  This is the easiest method, and it allows for options to be passed into the plugin in order to select only a subset of editor features or editor languages. Read more about the Monaco Editor WebPack Plugin, which is a community authored plugin.
+  
+  # best 
+  
+  \`\`\`mermaid 
+  flowchart TD
+    Start --> Stop
+  \`\`\`
+  `
+
+  const [text, setText] = useState(sample)
   const mdView = useRef<HTMLDivElement>(null)
+  const monacoEditorRef = useRef<HTMLDivElement>(null)
+
+
+
+  useEffect(() => {
+    editor = monaco.editor.create(monacoEditorRef.current, {
+      fontSize: 20,
+      wordWrap: 'on',
+      glyphMargin: false, smoothScrolling: true, automaticLayout: true,
+      theme: 'vs-dark',
+      lineNumbersMinChars: 3, minimap: { enabled: false },
+      language: "markdown"
+    })
+    editor.onDidChangeModelContent(_.debounce(() => {
+      setText(editor.getModel().getValue())
+    }, 200))
+    editor.onMouseDown(() => {
+      const pos = editor.getPosition()
+      const block = blocks.getByLine(pos.lineNumber)
+      if (block) setSelected(block.index)
+    })
+  }, [])
 
   useEffect(() => {
     const md = new MarkdownIt()
     md.use(InjectLineNumber)
-    mdView.current.innerHTML = md.render(text)
-    blocks.length = 0
-    $(mdView.current).find('[x-src]').each((i, ele) => {
+    const view = $(mdView.current)
+
+    const render = md.renderer.render
+    md.renderer.render = function (tokens, options, env) {
+      console.log('tokens: ', tokens);
+      return render.call(md.renderer, tokens, options, env)
+    }
+
+    view.html(md.render(text))
+
+    if (editor.getModel().getValue() != text) editor.getModel().setValue(text)
+    blocks.clear()
+    view.find('[x-src]').each((_idx, ele) => {
       $(ele).attr('x-block', blocks.length.toString())
-      blocks.push(new Block($(ele).attr('x-src')))
+      blocks.addBlock($(ele).attr('x-src'))
     })
     console.log('blocks: ', blocks)
   }, [text])
@@ -100,17 +173,15 @@ function App() {
     }) as HTMLElement
     const lineNum = parseInt(topEle.getAttribute('x-src'))
     const top = topEle.getBoundingClientRect().top
-    editor.revealLineNearTop(lineNum, lineNum, 0)
+    editor.revealLineNearTop(lineNum, 1)
     //setDecorations(lineNum, lineNum)
     console.log('lineNum: ', lineNum)
   }
 
-  const _setText = _.debounce(setText, 500)
-
   function editorMounted(_editor: any, _monaco: any) {
     editor = _editor
-    monaco = _monaco
-    console.log('editor: ', editor)
+
+    console.log('editor: ', editor, monaco)
     editor.onMouseDown((evt: any) => {
       console.log(evt)
     })
@@ -133,31 +204,16 @@ function App() {
     highlightBlock(selected)
   })
 
+
+
   return (
     <div className="MDEditor" >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
         defaultSize={splitSize} onChange={setSplitSize}
       >
         <div className='SPane left'>
-          <Navbar>
-            <NavbarGroup align={Alignment.LEFT} className='toolbar'>
-              <ButtonGroup minimal={false} >
-                <Button icon="header-one" text="Header" />
-                <Button icon="media" text="Image" />
-                <Button icon="pie-chart" text="Chart" />
-                <Button icon="code" text="Code" />
-                <NavbarDivider />
-                <Button icon="floppy-disk" text="" minimal={true} />
-                <Button icon="cross-circle" text="" minimal={true} />
-              </ButtonGroup>
-            </NavbarGroup>
-          </Navbar>
           <main>
-            <MonacoEditor height="100%" theme="vs-dark"
-              defaultLanguage="markdown" defaultValue={text}
-              options={monacoOptions} onChange={_setText}
-              onMount={editorMounted}
-            />
+            <div className="monacoEditor" ref={monacoEditorRef}></div>
           </main>
         </div>
         <div className='SPane right' onScroll={onViewScroll}>
