@@ -44,7 +44,8 @@
 
         .selected {
           outline: 2px solid cyan;
-          outline-offset: 5px;
+          outline-offset: 2px;
+          background-color: rgba($color: cyan, $alpha: .1);
         }
       }
     }

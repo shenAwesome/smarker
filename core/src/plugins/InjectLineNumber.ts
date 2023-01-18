@@ -21,7 +21,7 @@ function escapeHtml(unsafe: string) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/'/g, "&#039;")
 }
 
 function InjectLineNumber(md: MarkdownIt) {
@@ -31,14 +31,14 @@ function InjectLineNumber(md: MarkdownIt) {
 
     const fence = md.renderer.rules.fence
     md.renderer.rules.fence = function (tokens, idx, options, env, slf) {
-        const token = tokens[idx];
+        const token = tokens[idx]
         if (token.map) {
             token.attrSet('x-src', String(token.map.join(":")))
         }
         const srcStr = `x-src='${String(token.map.join(":"))}'`
         console.log(token.info)
         if (token.info.trim() == 'mermaid') {
-            const svg = mermaidAPI.render('_', token.content)
+            const svg = mermaidAPI.render('mermaid_' + idx, token.content)
             return `<div class='MermaidDiagram' ${srcStr}>
                 ${svg}
             </div>`
@@ -48,7 +48,7 @@ function InjectLineNumber(md: MarkdownIt) {
         //return result.replace('<pre>', `<pre> ${srcStr}`)
         return fence.call(null, tokens, idx, options, env, slf)
     }
-    console.log('md.renderer.rules: ', md.renderer.rules);
+    console.log('md.renderer.rules: ', md.renderer.rules)
 }
 
 export { InjectLineNumber }
