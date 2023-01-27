@@ -7,11 +7,10 @@ import { SyntheticEvent, useEffect, useRef, useState } from 'react'
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import './manaco/userWorker'
-import { InjectLineNumber } from './plugins/InjectLineNumber'
+import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
 
-console.log(self.MonacoEnvironment);
+console.log(self.MonacoEnvironment)
 
-monaco.languages.register({ id: 'mermaid' })
 
 function useStorage(key: string, defaultValue = "") {
   const value = localStorage.getItem(key) || defaultValue
@@ -100,28 +99,36 @@ function isInViewport(elem: HTMLElement) {
 
 function App() {
 
+  parserList.forEach(p => {
+    monaco.languages.register({ id: p.language })
+  })
+
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const minSize = 200
   const sample = `
-  # hello
+# hello
 
-  # hello world 
-  
-  This is the easiest method, and it allows for options to be passed into the plugin in order to select only a subset of editor features or editor languages. Read more about the Monaco Editor WebPack Plugin, which is a community authored plugin.
-  
-  # best 
-  
-  \`\`\`mermaid 
-  flowchart TD
-    Start --> Stop
-  \`\`\`
+# hello world 
+
+This is the easiest method, and it allows for options to be passed into the plugin in order to select only a subset of editor features or editor languages. Read more about the Monaco Editor WebPack Plugin, which is a community authored plugin.
+
+# best 
+
+\`\`\`mermaid 
+flowchart TD
+  Start --> Stop
+\`\`\`
+
+\`\`\`dot  
+Start -> Stop
+\`\`\`
+
+
   `
 
   const [text, setText] = useState(sample)
   const mdView = useRef<HTMLDivElement>(null)
   const monacoEditorRef = useRef<HTMLDivElement>(null)
-
-
 
   useEffect(() => {
     editor = monaco.editor.create(monacoEditorRef.current, {
@@ -149,7 +156,7 @@ function App() {
 
     const render = md.renderer.render
     md.renderer.render = function (tokens, options, env) {
-      console.log('tokens: ', tokens);
+      console.log('tokens: ', tokens)
       return render.call(md.renderer, tokens, options, env)
     }
 

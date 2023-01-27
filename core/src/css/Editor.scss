@@ -44,7 +44,13 @@
 
         .selected {
           outline: 2px solid cyan;
-          outline-offset: 5px;
+          background-color: rgba($color: cyan, $alpha: .1); 
+        }
+        .error{ 
+          background-color: rgba($color: yellow, $alpha: 1);
+        }
+        .custom{
+          margin:1em 0;
         }
       }
     }

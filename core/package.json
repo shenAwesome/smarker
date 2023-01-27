@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aslab/graphvizjs": "^1.0.20",
     "@blueprintjs/core": "^4.14.1",
     "@blueprintjs/icons": "^4.12.1",
     "@monaco-editor/react": "^4.4.6",
