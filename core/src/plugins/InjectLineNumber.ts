@@ -67,7 +67,8 @@ function InjectLineNumber(md: MarkdownIt) {
 
         return fence.call(null, tokens, idx, options, env, slf)
     }
-    console.log('md.renderer.rules: ', md.renderer.rules)
+
+
 }
 
 addParser('mermaid', (content, idx) => {

@@ -97,12 +97,35 @@ function isInViewport(elem: HTMLElement) {
   )
 }
 
-function App() {
-
-  parserList.forEach(p => {
-    monaco.languages.register({ id: p.language })
+function createSuggestions(range: monaco.IRange) {
+  const kind = monaco.languages.CompletionItemKind.Function
+  return config.suggestions.map(s => {
+    return {
+      label: s.name,
+      insertText: s.syntax,
+      kind, range, documentation: s.documentation
+    }
   })
+}
 
+let config = null as Config
+
+interface Suggestion {
+  name: string,
+  syntax: string
+  documentation: string
+}
+interface Config {
+  suggestions: Suggestion[]
+}
+
+async function preload() {
+  config = await (await fetch('./config.json')).json()
+  console.log('json: ', config)
+}
+
+
+function Editor() {
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const minSize = 200
   const sample = `
@@ -130,24 +153,51 @@ Start -> Stop
   const mdView = useRef<HTMLDivElement>(null)
   const monacoEditorRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  function initEditor() {
     editor = monaco.editor.create(monacoEditorRef.current, {
-      fontSize: 20,
-      wordWrap: 'on',
+      fontSize: 20, wordWrap: 'on',
       glyphMargin: false, smoothScrolling: true, automaticLayout: true,
-      theme: 'vs-dark',
-      lineNumbersMinChars: 3, minimap: { enabled: false },
+      theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
       language: "markdown"
     })
+
     editor.onDidChangeModelContent(_.debounce(() => {
       setText(editor.getModel().getValue())
     }, 200))
-    editor.onMouseDown(() => {
+    editor.onDidChangeCursorPosition(() => {
       const pos = editor.getPosition()
       const block = blocks.getByLine(pos.lineNumber)
       if (block) setSelected(block.index)
     })
-  }, [])
+    editor.onDidScrollChange(() => {
+
+    })
+
+
+    monaco.languages.registerCompletionItemProvider("markdown", {
+      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
+        var word = model.getWordUntilPosition(position)
+        console.log('word: ', word, position)
+        if (position.column !== 1) return { suggestions: [] }
+
+        var range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        }
+        return {
+          suggestions: createSuggestions(range)
+        }
+      }
+    })
+
+    parserList.forEach(p => {
+      monaco.languages.register({ id: p.language })
+    })
+  }
+
+  useEffect(initEditor, [])
 
   useEffect(() => {
     const md = new MarkdownIt()
@@ -156,7 +206,7 @@ Start -> Stop
 
     const render = md.renderer.render
     md.renderer.render = function (tokens, options, env) {
-      console.log('tokens: ', tokens)
+      //console.log('tokens: ', tokens)
       return render.call(md.renderer, tokens, options, env)
     }
 
@@ -168,7 +218,7 @@ Start -> Stop
       $(ele).attr('x-block', blocks.length.toString())
       blocks.addBlock($(ele).attr('x-src'))
     })
-    console.log('blocks: ', blocks)
+    //console.log('blocks: ', blocks)
   }, [text])
 
   const onViewScroll = () => {
@@ -231,4 +281,4 @@ Start -> Stop
   )
 }
 
-export default App
+export { Editor, preload }

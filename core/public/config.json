@@ -1,0 +1,52 @@
+{
+    "suggestions": [
+        {
+            "name": "Heading 1",
+            "syntax": "# H1"
+        },
+        {
+            "name": "Heading 2",
+            "syntax": "## H2"
+        },
+        {
+            "name": "Heading 3",
+            "syntax": "### H3"
+        },
+        {
+            "name": "Bold",
+            "syntax": "**bold text**"
+        },
+        {
+            "name": "Italic",
+            "syntax": "*italicized text*"
+        },
+        {
+            "name": "Blockquote",
+            "syntax": "> blockquote"
+        },
+        {
+            "name": "List (Ordered)",
+            "syntax": "1. First item\n1. Second item"
+        },
+        {
+            "name": "List (Unordered)",
+            "syntax": "- First item\n- Second item"
+        },
+        {
+            "name": "Code",
+            "syntax": "`code`"
+        },
+        {
+            "name": "Horizontal Rule",
+            "syntax": "---"
+        },
+        {
+            "name": "Link",
+            "syntax": "[title](https://www.example.com)"
+        },
+        {
+            "name": "Image",
+            "syntax": "![alt text](image.jpg)"
+        }
+    ]
+}
