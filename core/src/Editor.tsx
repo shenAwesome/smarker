@@ -1,5 +1,6 @@
 
 import $ from "cash-dom"
+import 'github-markdown-css'
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
 import * as monaco from 'monaco-editor'
@@ -7,15 +8,11 @@ import { SyntheticEvent, useEffect, useRef, useState } from 'react'
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import './manaco/userWorker'
-import 'github-markdown-css'
 import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
-import { SLIDER_PROGRESS } from "@blueprintjs/core/lib/esm/common/classes"
 
 function useStorage(key: string, defaultValue = "") {
   const value = localStorage.getItem(key) || defaultValue
-  const setValue = (val: string) => {
-    localStorage.setItem(key, val)
-  }
+  const setValue = (val: string) => localStorage.setItem(key, val)
   return [value, setValue] as [string, (val: string) => void]
 }
 
@@ -23,8 +20,6 @@ function useStorageInt(key: string, defaultValue = 0): [number, (val: number) =>
   const [value, setValue] = useStorage(key, defaultValue.toString())
   return [parseInt(value), (val: number) => setValue(val.toString())]
 }
-
-let decorations = null as monaco.editor.IEditorDecorationsCollection
 
 class Block {
   index = -1
@@ -35,9 +30,9 @@ class Block {
     this.start = this.start + 1
   }
   highlight() {
-    if (!editor) return
-    if (decorations) decorations.clear()
-    decorations = editor.createDecorationsCollection([{
+    if (!context.editor) return
+    if (context.decorations) context.decorations.clear()
+    context.decorations = context.editor.createDecorationsCollection([{
       range: new monaco.Range(this.start, 1, this.end, 1), options: {
         isWholeLine: true,
         linesDecorationsClassName: 'Decoration-highlight'
@@ -72,19 +67,22 @@ class Blocks {
   get length() {
     return this.blocks.length
   }
+
+  highlight(index: number) {
+    this.get(index)?.highlight()
+  }
 }
 
-
-let editor = null as monaco.editor.IStandaloneCodeEditor
-
-const blocks = new Blocks()
-function highlightBlock(index: number) {
-  blocks.get(index)?.highlight()
+const context = {
+  editor: null as monaco.editor.IStandaloneCodeEditor,
+  decorations: null as monaco.editor.IEditorDecorationsCollection,
+  blocks: new Blocks(),
+  config: null as Config
 }
 
 function createSuggestions(range: monaco.IRange) {
   const kind = monaco.languages.CompletionItemKind.Function
-  return config.suggestions.map(s => {
+  return context.config.suggestions.map(s => {
     return {
       label: s.name,
       insertText: s.syntax,
@@ -93,7 +91,7 @@ function createSuggestions(range: monaco.IRange) {
   })
 }
 
-let config = null as Config
+
 
 interface Suggestion {
   name: string,
@@ -136,7 +134,7 @@ function sleep(delay: number) {
 }
 
 async function preload() {
-  config = await (await fetch('./config.json')).json()
+  context.config = await (await fetch('./config.json')).json()
 
   document.addEventListener('keydown', async evt => {
     if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
@@ -151,6 +149,7 @@ async function preload() {
         }
       }
       if (imageText) {
+        const { editor } = context
         editor.trigger("source", "undo", null)
         navigator.clipboard.writeText(imageText)
         editor.trigger('source', 'editor.action.clipboardPasteAction', null)
@@ -240,14 +239,17 @@ function Editor() {
   const [text, setText] = useState(initContent)
   const mdView = useRef<HTMLDivElement>(null)
   const monacoEditorRef = useRef<HTMLDivElement>(null)
+  const { blocks } = context
 
   function initEditor() {
-    editor = monaco.editor.create(monacoEditorRef.current, {
+    const editor = monaco.editor.create(monacoEditorRef.current, {
       fontSize: 20, wordWrap: 'on',
-      glyphMargin: false, smoothScrolling: true, automaticLayout: true,
+      glyphMargin: false, smoothScrolling: false, automaticLayout: true,
       theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
       language: "markdown"
     })
+
+    Object.assign(context, { editor })
 
 
     editor.onDidChangeModelContent(_.debounce(() => {
@@ -271,33 +273,27 @@ function Editor() {
       if (block) setSelected(block.index)
     })
 
-    editor.onDidScrollChange(() => {
-      if (!isMouseInElement(monacoEditorRef.current)) return
-      const view = mdView.current
-      if (editor.getScrollTop() > 200) {
-        const rect = monacoEditorRef.current.getBoundingClientRect()
-        const middleLine = (rect.top + rect.bottom) / 2
-        const center = Array.from(monacoEditorRef.current.querySelectorAll('.line-numbers')).map((ele) => {
-          const line = parseInt(ele.innerHTML || '-1'),
-            rect = ele.getBoundingClientRect(),
-            distance = Math.abs((rect.top + rect.bottom) / 2 - middleLine)
-          return { line, distance }
-        }).sort((a, b) => a.distance - b.distance)[0]
-        if (center) {
-          const target = blocks.getByLine(center.line)
-          if (target) {
-            const targetDiv = view.querySelector(`[x-block='${target.index}']`) as HTMLElement,
-              top = targetDiv.offsetTop - middleLine + (targetDiv.getBoundingClientRect().height / 2)
-            view.parentElement.scrollTo({ top, behavior: 'smooth' })
-          }
-        }
-      } else {
-        view.parentElement.scrollTo(({ top: 0, behavior: 'smooth' }))
-      }
-    })
+    editor.onDidScrollChange(_.debounce(() => {
+      const editorDiv = monacoEditorRef.current,
+        viewDiv = mdView.current
+      if (!isMouseInElement(editorDiv)) return
+      //find the top code line
+      const { top, bottom } = editorDiv.getBoundingClientRect(),
+        lineNums = Array.from(editorDiv.querySelectorAll('.line-numbers')),
+        lines = lineNums.filter(
+          line => _.inRange(line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
+          .map(l => parseInt(l.innerHTML)).sort((a, b) => a - b),
+        topLine = lines.find(line => blocks.getByLine(line))
+      if (!topLine) return
+      const target = blocks.getByLine(topLine),
+        offset = lineNums.find(l => parseInt(l.innerHTML) == topLine).getBoundingClientRect().top - top,
+        targetDiv = viewDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
+        moveTo = targetDiv.offsetTop - offset
+      viewDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' })
+    }, 5))
 
     editor.onDidPaste(e => {
-      console.log(e)
+
 
     })
 
@@ -331,7 +327,7 @@ function Editor() {
     md.use(InjectLineNumber)
     const view = $(mdView.current)
     view.html(DataPool.patch(md.render(text)))
-
+    const { editor } = context
     if (editor.getModel().getValue() != text) {
       const position = editor.getPosition()
       editor.getModel().setValue(text)
@@ -346,19 +342,20 @@ function Editor() {
     })
   }, [text])
 
-  function onViewScroll() {
+  async function onViewScroll() {
     //align the centre line, find the element closest to centre  
     if (!isMouseInElement(mdView.current.parentElement)) return
-    const view = mdView.current,
-      rect = view.parentElement.getBoundingClientRect(),
-      centreLine = (rect.top + rect.bottom) / 2,
-      centreBlock = Array.from(view.querySelectorAll('[x-src]')).find(ele => {
+    const viewDiv = mdView.current,
+      top = viewDiv.parentElement.getBoundingClientRect().top,
+      topBlock = Array.from(viewDiv.querySelectorAll('[x-src]')).find(ele => {
         const rect = (ele as HTMLElement).getBoundingClientRect()
-        return _.inRange(centreLine, rect.top, rect.bottom)
+        return rect.top > top
       }) as HTMLElement
-    if (centreBlock) {
-      const lineNum = parseInt(centreBlock.getAttribute('x-src'))
-      editor.revealLineInCenter(lineNum)
+    if (topBlock) {
+      const lineNum = parseInt(topBlock.getAttribute('x-src'))
+      const editorTop = context.editor.getTopForLineNumber(lineNum)
+      const offset = topBlock.getBoundingClientRect().top - top
+      context.editor.setScrollTop(editorTop - offset)
     }
   }
 
@@ -373,7 +370,7 @@ function Editor() {
   useEffect(() => {
     $(mdView.current).find(`[x-block]`).removeClass('selected')
     $(mdView.current).find(`[x-block='${selected}']`).addClass('selected')
-    highlightBlock(selected)
+    context.blocks.highlight(selected)
   })
 
   return (
@@ -395,3 +392,4 @@ function Editor() {
 }
 
 export { Editor, preload }
+
