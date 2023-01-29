@@ -43,29 +43,37 @@ function addParser(language: string, handle: Handle) {
 }
 
 function InjectLineNumber(md: MarkdownIt) {
-    md.renderer.rules.paragraph_open = injectLineNumbers
-    md.renderer.rules.heading_open = injectLineNumbers
-    md.renderer.rules.table_open = injectLineNumbers
+
+    const ruleNames = 'paragraph_open,heading_open,table_open,bullet_list_open,ordered_list_open'
+    ruleNames.split(',').forEach(rule => {
+        md.renderer.rules[rule] = injectLineNumbers
+    })
 
     const fence = md.renderer.rules.fence
     md.renderer.rules.fence = function (tokens, idx, options, env, slf) {
         const token = tokens[idx]
-        if (token.map) token.attrSet('x-src', String(token.map.join(":")))
+        //if (token.map) token.attrSet('x-src', String(token.map.join(":")))
         const srcStr = `x-src='${String(token.map.join(":"))}'`
         const language = token.info.trim()
         const parser = parserList.find(p => p.language == language)
-        if (parser) try {
-            const parsed = parser.handle(token.content, idx, token) || token.content
-            return `<div class='custom language-${language}' ${srcStr}>
-                ${parsed}
+        let ret = ''
+        let content = escapeHtml(token.content)
+        if (parser) {
+            let handled = false
+            try {
+                content = parser.handle(token.content, idx, token)
+                handled = true
+            } catch (e) { }
+            ret = `<div class='code custom language-${language} ${handled ? '' : 'error'}' ${srcStr}>
+                ${content}
             </div>`
-        } catch (e) {
-            return `<div class='custom language-${language} error' ${srcStr}>
-                ${escapeHtml(token.content)}
-            </div>`
+        } else {
+            ret = `<pre ${srcStr} class='code language-${language}'<code>${content}</code></pre>\n`
         }
-
+        return ret
+        /* 
         return fence.call(null, tokens, idx, options, env, slf)
+        */
     }
 
 
