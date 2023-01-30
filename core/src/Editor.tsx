@@ -77,7 +77,9 @@ const context = {
   editor: null as monaco.editor.IStandaloneCodeEditor,
   decorations: null as monaco.editor.IEditorDecorationsCollection,
   blocks: new Blocks(),
-  config: null as Config
+  config: null as Config,
+  viewerDiv: null as HTMLDivElement,
+  editorDiv: null as HTMLDivElement
 }
 
 function createSuggestions(range: monaco.IRange) {
@@ -174,6 +176,15 @@ function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
   })
 }
 
+function createRef<T>(obj: T, key: keyof T) {
+  return {
+    set current(value: any) {
+      obj[key] = value
+      console.log('value: ', value)
+    }
+  }
+}
+
 function isMouseInElement(ele: HTMLElement) {
   const { left, right, top, bottom } = ele.getBoundingClientRect()
   return _.inRange(MousePosition.x, left, right) && _.inRange(MousePosition.y, top, bottom)
@@ -234,15 +245,13 @@ Start -> Stop
 
 function Editor() {
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
+  const [text, setText] = useState(initContent)
+  const { blocks } = context
   const minSize = 200
 
-  const [text, setText] = useState(initContent)
-  const mdView = useRef<HTMLDivElement>(null)
-  const monacoEditorRef = useRef<HTMLDivElement>(null)
-  const { blocks } = context
-
-  function initEditor() {
-    const editor = monaco.editor.create(monacoEditorRef.current, {
+  useEffect(() => {
+    const { editorDiv, viewerDiv } = context
+    const editor = monaco.editor.create(editorDiv, {
       fontSize: 20, wordWrap: 'on',
       glyphMargin: false, smoothScrolling: false, automaticLayout: true,
       theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
@@ -250,8 +259,6 @@ function Editor() {
     })
 
     Object.assign(context, { editor })
-
-
     editor.onDidChangeModelContent(_.debounce(() => {
       const content = editor.getModel().getValue()
       /*
@@ -274,8 +281,6 @@ function Editor() {
     })
 
     editor.onDidScrollChange(_.debounce(() => {
-      const editorDiv = monacoEditorRef.current,
-        viewDiv = mdView.current
       if (!isMouseInElement(editorDiv)) return
       //find the top code line
       const { top, bottom } = editorDiv.getBoundingClientRect(),
@@ -287,15 +292,10 @@ function Editor() {
       if (!topLine) return
       const target = blocks.getByLine(topLine),
         offset = lineNums.find(l => parseInt(l.innerHTML) == topLine).getBoundingClientRect().top - top,
-        targetDiv = viewDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
+        targetDiv = viewerDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
         moveTo = targetDiv.offsetTop - offset
-      viewDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' })
+      viewerDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' })
     }, 5))
-
-    editor.onDidPaste(e => {
-
-
-    })
 
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
@@ -318,14 +318,13 @@ function Editor() {
     parserList.forEach(p => {
       monaco.languages.register({ id: p.language })
     })
-  }
-
-  useEffect(initEditor, [])
+  }, [])
 
   useEffect(() => {
+    const { viewerDiv } = context
     const md = new MarkdownIt()
     md.use(InjectLineNumber)
-    const view = $(mdView.current)
+    const view = $(viewerDiv)
     view.html(DataPool.patch(md.render(text)))
     const { editor } = context
     if (editor.getModel().getValue() != text) {
@@ -342,12 +341,12 @@ function Editor() {
     })
   }, [text])
 
-  async function onViewScroll() {
+  function onViewScroll() {
+    const { viewerDiv } = context
     //align the centre line, find the element closest to centre  
-    if (!isMouseInElement(mdView.current.parentElement)) return
-    const viewDiv = mdView.current,
-      top = viewDiv.parentElement.getBoundingClientRect().top,
-      topBlock = Array.from(viewDiv.querySelectorAll('[x-src]')).find(ele => {
+    if (!isMouseInElement(viewerDiv.parentElement)) return
+    const top = viewerDiv.parentElement.getBoundingClientRect().top,
+      topBlock = Array.from(viewerDiv.querySelectorAll('[x-src]')).find(ele => {
         const rect = (ele as HTMLElement).getBoundingClientRect()
         return rect.top > top
       }) as HTMLElement
@@ -368,23 +367,24 @@ function Editor() {
   }
 
   useEffect(() => {
-    $(mdView.current).find(`[x-block]`).removeClass('selected')
-    $(mdView.current).find(`[x-block='${selected}']`).addClass('selected')
+    const { viewerDiv } = context
+    $(viewerDiv).find(`[x-block]`).removeClass('selected')
+    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
     context.blocks.highlight(selected)
   })
 
   return (
     <div className="MDEditor" onMouseMove={onMouseMove}>
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
-        defaultSize={splitSize} onChange={setSplitSize}
-      >
+        defaultSize={splitSize} onChange={setSplitSize} >
         <div className='SPane left'>
           <main>
-            <div className="monacoEditor" ref={monacoEditorRef}></div>
+            <div className="monacoEditor" ref={createRef(context, "editorDiv")}></div>
           </main>
         </div>
         <div className='SPane right mdView' onScroll={onViewScroll}>
-          <div className='markdown-body' ref={mdView} onClick={viewClicked}></div>
+          <div className='markdown-body' ref={createRef(context, "viewerDiv")}
+            onClick={viewClicked}></div>
         </div>
       </SplitPane>
     </div>
