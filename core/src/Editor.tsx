@@ -1,18 +1,32 @@
 
 import $ from "cash-dom"
 import 'github-markdown-css'
-import _ from 'lodash'
+import _, { update } from 'lodash'
 import MarkdownIt from 'markdown-it'
 import * as monaco from 'monaco-editor'
-import { SyntheticEvent, useEffect, useRef, useState } from 'react'
+import React, { SyntheticEvent, useEffect, useState } from "react"
+import ReactDOM from "react-dom"
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import './manaco/userWorker'
 import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
+import { Menu, Item, Separator, Submenu, useContextMenu, ItemParams } from 'react-contexify';
+import 'react-contexify/ReactContexify.css';
+
+const MENU_ID = 'mdEditorMenu';
+
+function useRefresh() {
+  const [_, setNum] = useState(0)
+  return () => setNum(Date.now)
+}
 
 function useStorage(key: string, defaultValue = "") {
+  const refresh = useRefresh()
   const value = localStorage.getItem(key) || defaultValue
-  const setValue = (val: string) => localStorage.setItem(key, val)
+  const setValue = (val: string) => {
+    localStorage.setItem(key, val)
+    refresh()
+  }
   return [value, setValue] as [string, (val: string) => void]
 }
 
@@ -25,7 +39,7 @@ class Block {
   index = -1
   start = 0
   end = 0
-  constructor(str: string) {
+  constructor(str = '-1:0') {
     [this.start, this.end] = str.split(":").map(s => parseInt(s))
     this.start = this.start + 1
   }
@@ -39,10 +53,15 @@ class Block {
       }
     }])
   }
+
+  position = {
+    inView: 0,
+    inEditor: 0
+  }
 }
 
 class Blocks {
-  private blocks: Block[] = []
+  public blocks: Block[] = []
 
   get(index: number) {
     return this.blocks[index]
@@ -79,7 +98,22 @@ const context = {
   blocks: new Blocks(),
   config: null as Config,
   viewerDiv: null as HTMLDivElement,
-  editorDiv: null as HTMLDivElement
+  editorDiv: null as HTMLDivElement,
+
+  update: _.debounce((selected: number) => {
+    const { viewerDiv, blocks, editor } = context
+    $(viewerDiv).find(`[x-block]`).removeClass('selected')
+    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
+    blocks.highlight(selected)
+    //update block position for scrolling
+    const viewTop = viewerDiv.getBoundingClientRect().top
+    blocks.blocks.forEach(b => {
+      b.position.inEditor = editor.getTopForLineNumber(b.start)
+      b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
+        .getBoundingClientRect().top - viewTop
+    })
+    console.log('update')
+  }, 100)
 }
 
 function createSuggestions(range: monaco.IRange) {
@@ -92,8 +126,6 @@ function createSuggestions(range: monaco.IRange) {
     }
   })
 }
-
-
 
 interface Suggestion {
   name: string,
@@ -126,6 +158,28 @@ const DataPool = {
       content = content.replaceAll(key, value)
     }
     return content
+  },
+  simplify: function (content: string) {
+    const { pool } = this
+    const find = /\(data:image\/png;base64,.*\)/g
+    let match: RegExpExecArray;
+    let index = 1
+
+
+    while ((match = find.exec(content)) !== null) {
+
+      const key = `(--data${index}--)`
+      const val = match[0]
+      Object.assign(pool, { [key]: val })
+      index++
+    }
+
+
+    for (const [key, value] of Object.entries(this.pool)) {
+      content = content.replaceAll(value, key)
+    }
+
+    return content
   }
 }
 
@@ -155,13 +209,14 @@ async function preload() {
         editor.trigger("source", "undo", null)
         navigator.clipboard.writeText(imageText)
         editor.trigger('source', 'editor.action.clipboardPasteAction', null)
-        editor.revealLineInCenter(editor.getPosition().lineNumber)
+        editor.revealLineNearTop(editor.getPosition().lineNumber)
       }
     }
     if (evt.key == 's' && evt.ctrlKey) {//disable browser save
       evt.preventDefault()
     }
   })
+  return Editor
 }
 
 const MousePosition = {
@@ -180,7 +235,6 @@ function createRef<T>(obj: T, key: keyof T) {
   return {
     set current(value: any) {
       obj[key] = value
-      console.log('value: ', value)
     }
   }
 }
@@ -240,14 +294,18 @@ flowchart TD
 Start -> Stop
 \`\`\`
 
-  `
+`
+
+
 
 
 function Editor() {
   const [splitSize, setSplitSize] = useStorageInt('splitSize', 500)
-  const [text, setText] = useState(initContent)
+  const [text, setText] = useStorage('mdContext', initContent)
   const { blocks } = context
   const minSize = 200
+
+  const { show } = useContextMenu({ id: MENU_ID });
 
   useEffect(() => {
     const { editorDiv, viewerDiv } = context
@@ -261,17 +319,7 @@ function Editor() {
     Object.assign(context, { editor })
     editor.onDidChangeModelContent(_.debounce(() => {
       const content = editor.getModel().getValue()
-      /*
-      const find = /\(data:image\/png;base64,.*\)/
-      const ret = find.exec(content)
-      const pool = {}
-      ret.forEach((val, index) => {
-        const key = `(--data${index}--)`
-        Object.assign(pool, { [key]: val })
-        content = content.replaceAll(val, key)
-      })
-      */
-      setText(content)
+      setText(DataPool.patch(content))
     }, 200))
 
     editor.onDidChangeCursorPosition(() => {
@@ -280,30 +328,58 @@ function Editor() {
       if (block) setSelected(block.index)
     })
 
-    editor.onDidScrollChange(_.debounce(() => {
+    editor.onDidScrollChange(() => {
       if (!isMouseInElement(editorDiv)) return
       //find the top code line
+      /* 
+     const { top, bottom } = editorDiv.getBoundingClientRect(),
+       lineNums = Array.from(editorDiv.querySelectorAll('.line-numbers')),
+       lines = lineNums.filter(
+         line => _.inRange(line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
+         .map(l => parseInt(l.innerHTML)).sort((a, b) => a - b),
+       topLine = lines.find(line => blocks.getByLine(line))
+     if (!topLine) return 
+    
+     const target = blocks.getByLine(topLine),
+       offset = lineNums.find(l => parseInt(l.innerHTML) == topLine).getBoundingClientRect().top - top,
+       targetDiv = viewerDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
+       moveTo = targetDiv.offsetTop - offset
+     viewerDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' }) 
+     */
+
+      /*
       const { top, bottom } = editorDiv.getBoundingClientRect(),
         lineNums = Array.from(editorDiv.querySelectorAll('.line-numbers')),
-        lines = lineNums.filter(
-          line => _.inRange(line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
-          .map(l => parseInt(l.innerHTML)).sort((a, b) => a - b),
-        topLine = lines.find(line => blocks.getByLine(line))
-      if (!topLine) return
-      const target = blocks.getByLine(topLine),
-        offset = lineNums.find(l => parseInt(l.innerHTML) == topLine).getBoundingClientRect().top - top,
-        targetDiv = viewerDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
-        moveTo = targetDiv.offsetTop - offset
-      viewerDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' })
-    }, 5))
+        topLine = _.min(lineNums.filter(line => _.inRange(
+          line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
+          .map(l => parseInt(l.innerHTML)))
+      */
+
+      const scrollTop = editor.getScrollTop()
+      const blockList = [new Block(), ...blocks.blocks]
+      const topBlock = blockList.find(b => b.position.inEditor > scrollTop)
+      if (!topBlock) return
+      const b1 = blockList.filter(b => b.start < topBlock.start).pop()
+      const percentage = (scrollTop - b1.position.inEditor)
+        / (topBlock.position.inEditor - b1.position.inEditor)
+
+
+
+      const newTop = b1.position.inView + ((topBlock.position.inView - b1.position.inView) * percentage)
+      if (topBlock.position.inView - b1.position.inView < 0) {
+
+
+      }
+
+      viewerDiv.parentElement.scrollTop = newTop
+
+    })
 
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
-        var word = model.getWordUntilPosition(position)
-
+        const word = model.getWordUntilPosition(position)
         if (position.column !== 1) return { suggestions: [] }
-
-        var range = {
+        const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
           startColumn: word.startColumn,
@@ -321,15 +397,16 @@ function Editor() {
   }, [])
 
   useEffect(() => {
-    const { viewerDiv } = context
+    const { viewerDiv, editor } = context
     const md = new MarkdownIt()
     md.use(InjectLineNumber)
     const view = $(viewerDiv)
-    view.html(DataPool.patch(md.render(text)))
-    const { editor } = context
-    if (editor.getModel().getValue() != text) {
+    view.html(md.render(text))
+
+    const simplified = DataPool.simplify(text)
+    if (editor.getModel().getValue() != simplified) {
       const position = editor.getPosition()
-      editor.getModel().setValue(text)
+      editor.getModel().setValue(simplified)
       editor.setPosition(position)
       editor.focus()
     }
@@ -352,7 +429,7 @@ function Editor() {
       }) as HTMLElement
     if (topBlock) {
       const lineNum = parseInt(topBlock.getAttribute('x-src'))
-      const editorTop = context.editor.getTopForLineNumber(lineNum)
+      const editorTop = context.editor.getTopForLineNumber(lineNum + 1)
       const offset = topBlock.getBoundingClientRect().top - top
       context.editor.setScrollTop(editorTop - offset)
     }
@@ -367,29 +444,62 @@ function Editor() {
   }
 
   useEffect(() => {
-    const { viewerDiv } = context
-    $(viewerDiv).find(`[x-block]`).removeClass('selected')
-    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
-    context.blocks.highlight(selected)
+    context.update(selected)
   })
 
-  return (
-    <div className="MDEditor" onMouseMove={onMouseMove}>
+  function onContextMenu(event: React.MouseEvent) {
+    show({ event })
+  }
+
+  const handleItemClick = _.debounce(({ id }: ItemParams) => {
+
+    switch (id) {
+      case "edit":
+
+        break;
+      case "print":
+        window.print()
+        break;
+    }
+  }, 200)
+
+  return <>
+    <div className="MDEditor" onMouseMove={onMouseMove}  >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
-        defaultSize={splitSize} onChange={setSplitSize} >
+        size={splitSize} onChange={setSplitSize} >
         <div className='SPane left'>
           <main>
             <div className="monacoEditor" ref={createRef(context, "editorDiv")}></div>
           </main>
         </div>
-        <div className='SPane right mdView' onScroll={onViewScroll}>
+        <div className='SPane right mdView' onScroll={onViewScroll} onContextMenu={onContextMenu}>
           <div className='markdown-body' ref={createRef(context, "viewerDiv")}
             onClick={viewClicked}></div>
         </div>
       </SplitPane>
     </div>
+
+    <Menu id={MENU_ID} theme='dark' animation=''>
+      <Item id="edit" onClick={handleItemClick}>Edit</Item>
+      <Item id="print" onClick={handleItemClick}>Print</Item>
+      <Separator />
+      <Item disabled>Disabled</Item>
+      <Separator />
+      <Submenu label="Foobar">
+        <Item id="reload" onClick={handleItemClick}>Reload</Item>
+        <Item id="something" onClick={handleItemClick}>Do something else</Item>
+      </Submenu>
+    </Menu>
+  </>
+}
+
+async function createEditor(container: HTMLElement) {
+  await preload()
+  ReactDOM.render(
+    <React.StrictMode>  <Editor /> </React.StrictMode>,
+    container
   )
 }
 
-export { Editor, preload }
+export { createEditor }
 

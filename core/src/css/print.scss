@@ -1,0 +1,36 @@
+@media print {
+
+    .markdown-body {
+        z-index: 1000;
+        position: static;
+        top: 0;
+        left: 0;
+        height: auto;
+        overflow: auto;
+
+        .selected {
+            outline: none !important;
+            background: none !important;
+        }
+    }
+
+    .contexify {
+        display: none !important;
+    }
+
+
+    #root,
+    .MDEditor,
+    .SplitPane,
+    .Pane,
+    .SPane {
+        height: auto !important;
+        position: static !important;
+    }
+
+    .Pane1 {
+        display: none !important;
+    }
+
+
+}

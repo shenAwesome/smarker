@@ -1,15 +1,11 @@
-import React from 'react'
-import * as ReactDOM from 'react-dom'
-import { Editor, preload } from './Editor'
 import './css/main.scss'
 import './css/SplitPane.scss'
+import './css/print.scss'
+import { createEditor } from './Editor'
 
 async function main() {
-  await preload()
-  ReactDOM.render(
-    <React.StrictMode>  <Editor /> </React.StrictMode>,
-    document.getElementById('root')
-  )
+  const container = document.getElementById('root')
+  await createEditor(container)
 }
 
 main()
