@@ -1,19 +1,21 @@
 
 import $ from "cash-dom"
 import 'github-markdown-css'
-import _, { update } from 'lodash'
+import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
 import * as monaco from 'monaco-editor'
 import React, { SyntheticEvent, useEffect, useState } from "react"
+import { Item, ItemParams, Menu, Separator, Submenu, useContextMenu } from 'react-contexify'
+import 'react-contexify/ReactContexify.css'
 import ReactDOM from "react-dom"
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import './manaco/userWorker'
 import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
-import { Menu, Item, Separator, Submenu, useContextMenu, ItemParams } from 'react-contexify';
-import 'react-contexify/ReactContexify.css';
 
-const MENU_ID = 'mdEditorMenu';
+import { FaEdit, FaPrint } from 'react-icons/fa'
+
+const MENU_ID = 'mdEditorMenu'
 
 function useRefresh() {
   const [_, setNum] = useState(0)
@@ -92,15 +94,52 @@ class Blocks {
   }
 }
 
-const context = {
-  editor: null as monaco.editor.IStandaloneCodeEditor,
-  decorations: null as monaco.editor.IEditorDecorationsCollection,
-  blocks: new Blocks(),
-  config: null as Config,
-  viewerDiv: null as HTMLDivElement,
-  editorDiv: null as HTMLDivElement,
 
-  update: _.debounce((selected: number) => {
+class DataPool {
+  pool = {} as { [key: string]: string }
+  cache(val: string) {
+    const { pool } = this
+    const index = Object.keys(pool).length
+    const key = `--data${index}--`
+    Object.assign(pool, { [key]: val })
+    return key
+  }
+  patch(content: string) {
+    for (const [key, value] of Object.entries(this.pool)) {
+      content = content.replaceAll(key, value)
+    }
+    return content
+  }
+  simplify(content: string) {
+    const { pool } = this
+    const find = /\(data:image\/png;base64,.*\)/g
+    let match: RegExpExecArray
+    let index = 1
+
+    while ((match = find.exec(content)) !== null) {
+
+      const key = `(--data${index}--)`
+      const val = match[0]
+      Object.assign(pool, { [key]: val })
+      index++
+    }
+
+    for (const [key, value] of Object.entries(this.pool)) {
+      content = content.replaceAll(value, key)
+    }
+    return content
+  }
+}
+
+class EditorContext {
+  editor: monaco.editor.IStandaloneCodeEditor
+  decorations: monaco.editor.IEditorDecorationsCollection
+  blocks = new Blocks()
+  config: Config
+  viewerDiv: HTMLDivElement
+  editorDiv: HTMLDivElement
+
+  update(selected: number) {
     const { viewerDiv, blocks, editor } = context
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
     $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
@@ -113,19 +152,87 @@ const context = {
         .getBoundingClientRect().top - viewTop
     })
     console.log('update')
-  }, 100)
+  }
+
+  createSuggestions(range: monaco.IRange) {
+    const kind = monaco.languages.CompletionItemKind.Function
+    return this.config.suggestions.map(s => {
+      return {
+        label: s.name,
+        insertText: s.syntax,
+        kind, range, documentation: s.documentation
+      }
+    })
+  }
+
+
+  async preload() {
+    this.config = await (await fetch('./config.json')).json()
+    document.addEventListener('keydown', async evt => {
+      if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
+        let imageText = ''
+        const clipboardItems = await navigator.clipboard.read()
+        for (const clipboardItem of clipboardItems) {
+          for (const type of clipboardItem.types) {
+            if (type == 'image/png') {
+              const base64 = await blobToBase64(await clipboardItem.getType(type))
+              imageText = `![Image](${this.pool.cache(base64)})`
+            }
+          }
+        }
+        if (imageText) {
+          const { editor } = this
+          editor.trigger("source", "undo", null)
+          navigator.clipboard.writeText(imageText)
+          editor.trigger('source', 'editor.action.clipboardPasteAction', null)
+          editor.revealLineNearTop(editor.getPosition().lineNumber)
+        }
+      }
+      if (evt.key == 's' && evt.ctrlKey) {//disable browser save
+        evt.preventDefault()
+      }
+    })
+  }
+
+  pool = new DataPool
+
+  constructor() {
+    this.update = _.debounce(this.update, 100)
+
+  }
+
+  onEditorScroll() {
+    const { viewerDiv, editorDiv, editor, blocks } = this
+    if (!isMouseInElement(editorDiv)) return
+    const scrollTop = editor.getScrollTop(),
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inEditor > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inEditor)
+        / (topBlock.position.inEditor - prev.position.inEditor),
+      newTop = prev.position.inView + ((topBlock.position.inView - prev.position.inView) * percentage)
+    viewerDiv.parentElement.scrollTop = newTop
+  }
+
+  onViewerScroll() {
+    const { viewerDiv, editor, blocks } = this
+    if (!isMouseInElement(viewerDiv.parentElement)) return
+    const scrollTop = viewerDiv.parentElement.scrollTop,
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inView > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inView)
+        / (topBlock.position.inView - prev.position.inView),
+      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
+    editor.setScrollTop(newTop)
+  }
+
 }
 
-function createSuggestions(range: monaco.IRange) {
-  const kind = monaco.languages.CompletionItemKind.Function
-  return context.config.suggestions.map(s => {
-    return {
-      label: s.name,
-      insertText: s.syntax,
-      kind, range, documentation: s.documentation
-    }
-  })
-}
+const context = new EditorContext
+
 
 interface Suggestion {
   name: string,
@@ -144,79 +251,10 @@ function blobToBase64(blob: Blob) {
   })
 }
 
-const DataPool = {
-  pool: {} as { [key: string]: string },
-  cache: function (val: string) {
-    const { pool } = this
-    const index = Object.keys(pool).length
-    const key = `--data${index}--`
-    Object.assign(pool, { [key]: val })
-    return key
-  },
-  patch: function (content: string) {
-    for (const [key, value] of Object.entries(this.pool)) {
-      content = content.replaceAll(key, value)
-    }
-    return content
-  },
-  simplify: function (content: string) {
-    const { pool } = this
-    const find = /\(data:image\/png;base64,.*\)/g
-    let match: RegExpExecArray;
-    let index = 1
-
-
-    while ((match = find.exec(content)) !== null) {
-
-      const key = `(--data${index}--)`
-      const val = match[0]
-      Object.assign(pool, { [key]: val })
-      index++
-    }
-
-
-    for (const [key, value] of Object.entries(this.pool)) {
-      content = content.replaceAll(value, key)
-    }
-
-    return content
-  }
-}
-
 function sleep(delay: number) {
   return new Promise<void>(resolve => {
     window.setTimeout(resolve, delay)
   })
-}
-
-async function preload() {
-  context.config = await (await fetch('./config.json')).json()
-
-  document.addEventListener('keydown', async evt => {
-    if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
-      let imageText = ''
-      const clipboardItems = await navigator.clipboard.read()
-      for (const clipboardItem of clipboardItems) {
-        for (const type of clipboardItem.types) {
-          if (type == 'image/png') {
-            const base64 = await blobToBase64(await clipboardItem.getType(type))
-            imageText = `![Image](${DataPool.cache(base64)})`
-          }
-        }
-      }
-      if (imageText) {
-        const { editor } = context
-        editor.trigger("source", "undo", null)
-        navigator.clipboard.writeText(imageText)
-        editor.trigger('source', 'editor.action.clipboardPasteAction', null)
-        editor.revealLineNearTop(editor.getPosition().lineNumber)
-      }
-    }
-    if (evt.key == 's' && evt.ctrlKey) {//disable browser save
-      evt.preventDefault()
-    }
-  })
-  return Editor
 }
 
 const MousePosition = {
@@ -305,7 +343,7 @@ function Editor() {
   const { blocks } = context
   const minSize = 200
 
-  const { show } = useContextMenu({ id: MENU_ID });
+  const { show } = useContextMenu({ id: MENU_ID })
 
   useEffect(() => {
     const { editorDiv, viewerDiv } = context
@@ -319,7 +357,7 @@ function Editor() {
     Object.assign(context, { editor })
     editor.onDidChangeModelContent(_.debounce(() => {
       const content = editor.getModel().getValue()
-      setText(DataPool.patch(content))
+      setText(context.pool.patch(content))
     }, 200))
 
     editor.onDidChangeCursorPosition(() => {
@@ -329,50 +367,7 @@ function Editor() {
     })
 
     editor.onDidScrollChange(() => {
-      if (!isMouseInElement(editorDiv)) return
-      //find the top code line
-      /* 
-     const { top, bottom } = editorDiv.getBoundingClientRect(),
-       lineNums = Array.from(editorDiv.querySelectorAll('.line-numbers')),
-       lines = lineNums.filter(
-         line => _.inRange(line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
-         .map(l => parseInt(l.innerHTML)).sort((a, b) => a - b),
-       topLine = lines.find(line => blocks.getByLine(line))
-     if (!topLine) return 
-    
-     const target = blocks.getByLine(topLine),
-       offset = lineNums.find(l => parseInt(l.innerHTML) == topLine).getBoundingClientRect().top - top,
-       targetDiv = viewerDiv.querySelector(`[x-block='${target.index}']`) as HTMLElement,
-       moveTo = targetDiv.offsetTop - offset
-     viewerDiv.parentElement.scrollTo({ top: moveTo, behavior: 'auto' }) 
-     */
-
-      /*
-      const { top, bottom } = editorDiv.getBoundingClientRect(),
-        lineNums = Array.from(editorDiv.querySelectorAll('.line-numbers')),
-        topLine = _.min(lineNums.filter(line => _.inRange(
-          line.getBoundingClientRect().top, top, bottom) && line.innerHTML)
-          .map(l => parseInt(l.innerHTML)))
-      */
-
-      const scrollTop = editor.getScrollTop()
-      const blockList = [new Block(), ...blocks.blocks]
-      const topBlock = blockList.find(b => b.position.inEditor > scrollTop)
-      if (!topBlock) return
-      const b1 = blockList.filter(b => b.start < topBlock.start).pop()
-      const percentage = (scrollTop - b1.position.inEditor)
-        / (topBlock.position.inEditor - b1.position.inEditor)
-
-
-
-      const newTop = b1.position.inView + ((topBlock.position.inView - b1.position.inView) * percentage)
-      if (topBlock.position.inView - b1.position.inView < 0) {
-
-
-      }
-
-      viewerDiv.parentElement.scrollTop = newTop
-
+      context.onEditorScroll()
     })
 
     monaco.languages.registerCompletionItemProvider("markdown", {
@@ -386,7 +381,7 @@ function Editor() {
           endColumn: word.endColumn
         }
         return {
-          suggestions: createSuggestions(range)
+          suggestions: context.createSuggestions(range)
         }
       }
     })
@@ -403,7 +398,7 @@ function Editor() {
     const view = $(viewerDiv)
     view.html(md.render(text))
 
-    const simplified = DataPool.simplify(text)
+    const simplified = context.pool.simplify(text)
     if (editor.getModel().getValue() != simplified) {
       const position = editor.getPosition()
       editor.getModel().setValue(simplified)
@@ -418,22 +413,6 @@ function Editor() {
     })
   }, [text])
 
-  function onViewScroll() {
-    const { viewerDiv } = context
-    //align the centre line, find the element closest to centre  
-    if (!isMouseInElement(viewerDiv.parentElement)) return
-    const top = viewerDiv.parentElement.getBoundingClientRect().top,
-      topBlock = Array.from(viewerDiv.querySelectorAll('[x-src]')).find(ele => {
-        const rect = (ele as HTMLElement).getBoundingClientRect()
-        return rect.top > top
-      }) as HTMLElement
-    if (topBlock) {
-      const lineNum = parseInt(topBlock.getAttribute('x-src'))
-      const editorTop = context.editor.getTopForLineNumber(lineNum + 1)
-      const offset = topBlock.getBoundingClientRect().top - top
-      context.editor.setScrollTop(editorTop - offset)
-    }
-  }
 
   const [selected, setSelected] = useState(-1)
 
@@ -456,10 +435,10 @@ function Editor() {
     switch (id) {
       case "edit":
 
-        break;
+        break
       case "print":
         window.print()
-        break;
+        break
     }
   }, 200)
 
@@ -472,7 +451,7 @@ function Editor() {
             <div className="monacoEditor" ref={createRef(context, "editorDiv")}></div>
           </main>
         </div>
-        <div className='SPane right mdView' onScroll={onViewScroll} onContextMenu={onContextMenu}>
+        <div className='SPane right mdView' onScroll={() => context.onViewerScroll()} onContextMenu={onContextMenu}>
           <div className='markdown-body' ref={createRef(context, "viewerDiv")}
             onClick={viewClicked}></div>
         </div>
@@ -480,8 +459,8 @@ function Editor() {
     </div>
 
     <Menu id={MENU_ID} theme='dark' animation=''>
-      <Item id="edit" onClick={handleItemClick}>Edit</Item>
-      <Item id="print" onClick={handleItemClick}>Print</Item>
+      <Item id="edit" onClick={handleItemClick}> <FaEdit /> Edit</Item>
+      <Item id="print" onClick={handleItemClick}><FaPrint />Print</Item>
       <Separator />
       <Item disabled>Disabled</Item>
       <Separator />
@@ -494,7 +473,7 @@ function Editor() {
 }
 
 async function createEditor(container: HTMLElement) {
-  await preload()
+  await context.preload()
   ReactDOM.render(
     <React.StrictMode>  <Editor /> </React.StrictMode>,
     container
