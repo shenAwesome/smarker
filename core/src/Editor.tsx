@@ -12,8 +12,10 @@ import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import './manaco/userWorker'
 import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
+import classNames from "classnames"
 
-import { FaEdit, FaPrint } from 'react-icons/fa'
+import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
+import { BiArrowToTop, BiArrowToBottom } from 'react-icons/bi'
 
 const MENU_ID = 'mdEditorMenu'
 
@@ -98,9 +100,9 @@ class Blocks {
 class DataPool {
   pool = {} as { [key: string]: string }
   cache(val: string) {
-    const { pool } = this
-    const index = Object.keys(pool).length
-    const key = `--data${index}--`
+    const { pool } = this,
+      index = Object.keys(pool).length + 1,
+      key = `--data:image/${index}--`
     Object.assign(pool, { [key]: val })
     return key
   }
@@ -117,8 +119,7 @@ class DataPool {
     let index = 1
 
     while ((match = find.exec(content)) !== null) {
-
-      const key = `(--data${index}--)`
+      const key = `(--data:image/${index}--)`
       const val = match[0]
       Object.assign(pool, { [key]: val })
       index++
@@ -151,7 +152,6 @@ class EditorContext {
       b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
         .getBoundingClientRect().top - viewTop
     })
-    console.log('update')
   }
 
   createSuggestions(range: monaco.IRange) {
@@ -415,6 +415,8 @@ function Editor() {
 
 
   const [selected, setSelected] = useState(-1)
+  const [_showEditor, setShowEditor] = useStorage('setShowEditor', 'true')
+  const showEditor = _showEditor == 'true'
 
   function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>): void {
     const target = (event.target as HTMLElement).closest('[x-src]')
@@ -423,7 +425,7 @@ function Editor() {
   }
 
   useEffect(() => {
-    context.update(selected)
+    context.update(showEditor ? selected : -1)
   })
 
   function onContextMenu(event: React.MouseEvent) {
@@ -431,19 +433,27 @@ function Editor() {
   }
 
   const handleItemClick = _.debounce(({ id }: ItemParams) => {
+    const viewerContainer = context.viewerDiv.parentElement
 
     switch (id) {
       case "edit":
-
+        setShowEditor((!showEditor) + "")
         break
       case "print":
         window.print()
         break
+      case "toTop":
+        viewerContainer.scrollTop = 0
+        break
+      case "toBottom":
+        viewerContainer.scrollTop = viewerContainer.scrollHeight
+        break
     }
   }, 200)
+  //className="MDEditor"
 
   return <>
-    <div className="MDEditor" onMouseMove={onMouseMove}  >
+    <div className={classNames("MDEditor", { hideEditor: !showEditor })} onMouseMove={onMouseMove}  >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
         size={splitSize} onChange={setSplitSize} >
         <div className='SPane left'>
@@ -461,13 +471,8 @@ function Editor() {
     <Menu id={MENU_ID} theme='dark' animation=''>
       <Item id="edit" onClick={handleItemClick}> <FaEdit /> Edit</Item>
       <Item id="print" onClick={handleItemClick}><FaPrint />Print</Item>
-      <Separator />
-      <Item disabled>Disabled</Item>
-      <Separator />
-      <Submenu label="Foobar">
-        <Item id="reload" onClick={handleItemClick}>Reload</Item>
-        <Item id="something" onClick={handleItemClick}>Do something else</Item>
-      </Submenu>
+      <Item id="toTop" onClick={handleItemClick}><FaArrowUp />to Top</Item>
+      <Item id="toBottom" onClick={handleItemClick}><FaArrowDown />to Bottom</Item>
     </Menu>
   </>
 }

@@ -8,9 +8,26 @@
   flex-direction: column;
   cursor: default;
 
+  &.hideEditor {
+    .SPane.right {
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+  }
+
 
   >.toolbar {
     flex: 0 0 auto;
+  }
+
+  .SplitPane {
+    >.Pane {
+      min-width: 0;
+    }
   }
 
   .SPane {
@@ -36,6 +53,7 @@
       color: black;
       overflow: auto;
       position: relative;
+      overflow-x: hidden;
     }
   }
 }
@@ -52,6 +70,16 @@
 
 .markdown-body {
   padding: 1em;
+  min-width: min-content;
+
+  >* {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  table {
+    width: auto;
+  }
 
   .selected {
     outline: 2px solid cyan;
