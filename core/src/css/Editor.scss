@@ -1,3 +1,9 @@
+body {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+}
+
 .MDEditor {
   position: fixed;
   display: flex;
@@ -88,6 +94,11 @@
 
   .error {
     background-color: rgba($color: yellow, $alpha: 1);
+  }
+
+  .warning {
+    background-color: #ff8;
+    padding: 1em;
   }
 
   .custom {

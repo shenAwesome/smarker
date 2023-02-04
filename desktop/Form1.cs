@@ -10,12 +10,22 @@ namespace SMarkdownReader {
     public partial class Form1 : Form {
         private string _filePath;
         private FileSystemWatcher _watcher;
-        private MarkdownPipeline _pipeline = new Markdig.MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+
 
         public Form1() {
             InitializeComponent();
             //ApplyTheme();
             //setupToolbar(); 
+            webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
+        }
+
+        private void WebViewInitialized(object sender, CoreWebView2InitializationCompletedEventArgs e) {
+            webView21.CoreWebView2.PermissionRequested += (object _, CoreWebView2PermissionRequestedEventArgs ev) => {
+                var def = ev.GetDeferral();
+                ev.State = CoreWebView2PermissionState.Allow;
+                ev.Handled = true;
+                def.Complete();
+            };
         }
 
         private void Form1_Load(object sender, EventArgs e) {
@@ -26,10 +36,10 @@ namespace SMarkdownReader {
             var options = new CoreWebView2EnvironmentOptions("--allow-file-access-from-files");
             var environment = await CoreWebView2Environment.CreateAsync(null, null, options);
             await webView21.EnsureCoreWebView2Async(environment);
-            webView21.CoreWebView2.SetVirtualHostNameToFolderMapping("home",
-                    @"D:\temp\", CoreWebView2HostResourceAccessKind.Allow);
+            var view = webView21.CoreWebView2;
+            //view.SetVirtualHostNameToFolderMapping("home",  @"D:\temp\", CoreWebView2HostResourceAccessKind.Allow); 
+            view.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html");
 
-            OpenFile(@"D:\temp\test.md");
         }
 
 

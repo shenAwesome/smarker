@@ -3,9 +3,11 @@ import './css/SplitPane.scss'
 import './css/print.scss'
 import { createEditor } from './Editor'
 
-async function main() {
+function main() {
   const container = document.getElementById('root')
-  await createEditor(container)
+  createEditor(container, 'hello', code => {
+    console.log('code: ', code)
+  })
 }
 
 main()

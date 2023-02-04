@@ -33,7 +33,6 @@
             this.testToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.testToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.testToolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.textBox1 = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.webView21)).BeginInit();
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -46,7 +45,7 @@
             this.webView21.Dock = System.Windows.Forms.DockStyle.Fill;
             this.webView21.Location = new System.Drawing.Point(2, 59);
             this.webView21.Name = "webView21";
-            this.webView21.Size = new System.Drawing.Size(544, 453);
+            this.webView21.Size = new System.Drawing.Size(756, 453);
             this.webView21.TabIndex = 0;
             this.webView21.ZoomFactor = 1D;
             // 
@@ -132,24 +131,12 @@
             this.testToolStripMenuItem2.Size = new System.Drawing.Size(93, 22);
             this.testToolStripMenuItem2.Text = "test";
             // 
-            // textBox1
-            // 
-            this.textBox1.Dock = System.Windows.Forms.DockStyle.Right;
-            this.textBox1.Location = new System.Drawing.Point(546, 59);
-            this.textBox1.Multiline = true;
-            this.textBox1.Name = "textBox1";
-            this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox1.Size = new System.Drawing.Size(212, 453);
-            this.textBox1.TabIndex = 3;
-            this.textBox1.WordWrap = false;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(760, 514);
             this.Controls.Add(this.webView21);
-            this.Controls.Add(this.textBox1);
             this.Controls.Add(this.toolStrip1);
             this.Name = "Form1";
             this.Padding = new System.Windows.Forms.Padding(2, 24, 2, 2);
@@ -175,7 +162,6 @@
         private System.Windows.Forms.ToolStripMenuItem testToolStripMenuItem2;
         private System.Windows.Forms.ToolStripButton toolStripButton3;
         private System.Windows.Forms.ToolStripButton toolStripButton4;
-        private System.Windows.Forms.TextBox textBox1;
     }
 }
 

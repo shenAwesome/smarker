@@ -6,8 +6,13 @@ import Token from "markdown-it/lib/token"
 import mermaid from "mermaid"
 
 const { mermaidAPI } = mermaid
+let viz: Viz
 
-const viz = await Viz.create()
+async function init() {
+    viz = await Viz.create()
+}
+
+init()
 
 function injectLineNumbers(tokens: Token[], idx: number, options: MarkdownIt.Options,
     env: any, slf: Renderer) {
@@ -75,8 +80,6 @@ function InjectLineNumber(md: MarkdownIt) {
         return fence.call(null, tokens, idx, options, env, slf)
         */
     }
-
-
 }
 
 addParser('mermaid', (content, idx) => {
