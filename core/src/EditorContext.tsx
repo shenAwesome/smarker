@@ -153,6 +153,7 @@ class EditorContext {
   }
 
   init(onSave: (content: string) => void) {
+    this.blocks.context = this
     this.editor = monaco.editor.create(this.editorDiv, {
       fontSize: 20, wordWrap: 'on',
       glyphMargin: false, smoothScrolling: false, automaticLayout: true,
@@ -181,31 +182,6 @@ class EditorContext {
     this.editor.onDidScrollChange(() => {
       this.onEditorScroll()
     })
-    return this.editor
-  }
-
-  getCode() {
-    const content = this.editor.getModel().getValue()
-    return this.pool.patch(content)
-  }
-
-  onViewerScroll() {
-    const { viewerDiv, editor, blocks } = this
-    if (!isMouseInElement(viewerDiv.parentElement)) return
-    const scrollTop = viewerDiv.parentElement.scrollTop,
-      blockList = [new Block(), ...blocks.blocks],
-      topBlock = blockList.find(b => b.position.inView > scrollTop)
-    if (!topBlock) return
-    const prev = blockList[blockList.indexOf(topBlock) - 1],
-      percentage = (scrollTop - prev.position.inView)
-        / (topBlock.position.inView - prev.position.inView),
-      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
-    editor.setScrollTop(newTop)
-  }
-
-  async preload() {
-    this.blocks.context = this
-    this.config = await (await fetch('./config.json')).json()
 
     document.addEventListener('keydown', async evt => {
       if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
@@ -233,6 +209,27 @@ class EditorContext {
       }
     })
     document.addEventListener('mousemove', onMouseMove)
+
+    return this.editor
+  }
+
+  getCode() {
+    const content = this.editor.getModel().getValue()
+    return this.pool.patch(content)
+  }
+
+  onViewerScroll = () => {
+    const { viewerDiv, editor, blocks } = this
+    if (!isMouseInElement(viewerDiv.parentElement)) return
+    const scrollTop = viewerDiv.parentElement.scrollTop,
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inView > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inView)
+        / (topBlock.position.inView - prev.position.inView),
+      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
+    editor.setScrollTop(newTop)
   }
 
   update(selected: number) {
@@ -247,6 +244,12 @@ class EditorContext {
       b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
         .getBoundingClientRect().top - viewTop
     })
+  }
+
+  static async create() {
+    const context = new EditorContext
+    context.config = await (await fetch('./config.json')).json()
+    return context
   }
 }
 

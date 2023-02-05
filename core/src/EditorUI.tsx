@@ -141,7 +141,7 @@ function EditorUI({ code, onSave, context }: EditorProps) {
             <div className="monacoEditor" ref={createRef(context, "editorDiv")}></div>
           </main>
         </div>
-        <div className='SPane right mdView' onScroll={() => context.onViewerScroll()} onContextMenu={onContextMenu}>
+        <div className='SPane right mdView' onScroll={context.onViewerScroll} onContextMenu={onContextMenu}>
           <div className='markdown-body' ref={createRef(context, "viewerDiv")}
             onClick={viewClicked}></div>
         </div>

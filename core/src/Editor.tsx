@@ -7,7 +7,7 @@ import mermaid from "mermaid"
 
 async function createEditor(container: HTMLElement,
   code: string, onSave: (code: string) => void) {
-  const context = new EditorContext
+  const context = await EditorContext.create()
   const viz = await Viz.create()
   context.addParser('mermaid', (content, idx) => {
     const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
@@ -19,13 +19,10 @@ async function createEditor(container: HTMLElement,
       const head = content.includes('->') ? 'digraph' : 'graph'
       content = ` ${head} { 
         ${content}
-    }`
+      }`
     }
-    const svg = viz.layout(content)
-    return svg
+    return viz.layout(content)
   })
-
-  await context.preload()
 
   ReactDOM.render(
     <React.StrictMode>
