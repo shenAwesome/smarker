@@ -64,3 +64,4 @@ function InjectLineNumber(md: MarkdownIt) {
 }
 
 export { InjectLineNumber, addParser, parserList }
+export type { Handle }

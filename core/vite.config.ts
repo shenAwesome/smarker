@@ -4,6 +4,18 @@ import { splitVendorChunkPlugin } from 'vite'
 
 export default defineConfig({
   plugins: [splitVendorChunkPlugin()],
+  build: {
+    chunkSizeWarningLimit: 50000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            return 'vendors'
+          }
+        }
+      }
+    }
+  },
   base: '',
   server: {
     port: 4000, open: true,

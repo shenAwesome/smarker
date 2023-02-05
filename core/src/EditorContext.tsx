@@ -10,7 +10,7 @@ import * as monaco from 'monaco-editor'
 import 'react-contexify/ReactContexify.css'
 import './css/Editor.scss'
 import './manaco/userWorker'
-import { addParser, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
+import { addParser, Handle, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
 let viz: Viz
 
 class Block {
@@ -124,23 +124,10 @@ class EditorContext {
     const { mdEngine } = this
     mdEngine.use(InjectLineNumber)
     mdEngine.use(markdownContainer, 'warning')
+  }
 
-    addParser('mermaid', (content, idx) => {
-      const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
-      return svg
-    })
-
-    addParser('dot', content => {
-      content = content.trim()
-      if (!(content.startsWith('digraph') || content.startsWith('graph'))) {
-        const head = content.includes('->') ? 'digraph' : 'graph'
-        content = ` ${head} { 
-          ${content}
-      }`
-      }
-      const svg = viz.layout(content)
-      return svg
-    })
+  addParser(language: string, handle: Handle) {
+    addParser(language, handle)
   }
 
   private createSuggestions(range: monaco.IRange) {
