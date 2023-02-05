@@ -152,7 +152,7 @@ class EditorContext {
     viewerDiv.parentElement.scrollTop = newTop
   }
 
-  initEditor(onSave: (content: string) => void) {
+  init(onSave: (content: string) => void) {
     this.editor = monaco.editor.create(this.editorDiv, {
       fontSize: 20, wordWrap: 'on',
       glyphMargin: false, smoothScrolling: false, automaticLayout: true,

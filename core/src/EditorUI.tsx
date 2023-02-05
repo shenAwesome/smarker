@@ -62,7 +62,7 @@ function EditorUI({ code, onSave, context }: EditorProps) {
 
   useEffect(() => {//first time
 
-    const editor = context.initEditor(onSave)
+    const editor = context.init(onSave)
 
     editor.onDidChangeModelContent(_.debounce(() => {
       setText(context.getCode())
