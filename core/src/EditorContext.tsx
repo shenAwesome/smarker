@@ -1,39 +1,32 @@
 
+import { Viz } from "@aslab/graphvizjs"
 import $ from "cash-dom"
 import 'github-markdown-css'
 import _ from 'lodash'
+import MarkdownIt from 'markdown-it'
+import markdownContainer from 'markdown-it-container'
+import mermaid from "mermaid"
 import * as monaco from 'monaco-editor'
-import React from "react"
 import 'react-contexify/ReactContexify.css'
 import './css/Editor.scss'
 import './manaco/userWorker'
+import { addParser, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
+let viz: Viz
 
 class Block {
-  context: EditorContext
   index = -1
   start = 0
   end = 0
+  position = {
+    inView: 0,
+    inEditor: 0
+  }
+
   constructor(str = '-1:0') {
     [this.start, this.end] = str.split(":").map(s => parseInt(s))
     this.start = this.start + 1
   }
 
-  highlight() {
-    const { context } = this
-    if (!context.editor) return
-    if (context.decorations) context.decorations.clear()
-    context.decorations = context.editor.createDecorationsCollection([{
-      range: new monaco.Range(this.start, 1, this.end, 1), options: {
-        isWholeLine: true,
-        linesDecorationsClassName: 'Decoration-highlight'
-      }
-    }])
-  }
-
-  position = {
-    inView: 0,
-    inEditor: 0
-  }
 }
 
 class Blocks {
@@ -52,7 +45,6 @@ class Blocks {
 
   addBlock(blockStr: string) {
     const block = new Block(blockStr)
-    block.context = this.context
     block.index = this.blocks.length
     this.blocks.push(block)
   }
@@ -66,10 +58,20 @@ class Blocks {
   }
 
   highlight(index: number) {
-    this.get(index)?.highlight()
+    const block = this.get(index)
+    if (block) {
+      const { context } = this
+      if (!context.editor) return
+      if (context.decorations) context.decorations.clear()
+      context.decorations = context.editor.createDecorationsCollection([{
+        range: new monaco.Range(block.start, 1, block.end, 1), options: {
+          isWholeLine: true,
+          linesDecorationsClassName: 'Decoration-highlight'
+        }
+      }])
+    }
   }
 }
-
 
 class DataPool {
   pool = {} as { [key: string]: string }
@@ -107,28 +109,41 @@ class DataPool {
 }
 
 class EditorContext {
-  editor: monaco.editor.IStandaloneCodeEditor
-  decorations: monaco.editor.IEditorDecorationsCollection
+  private config: Config
+  private onSave: (content: string) => void
   blocks = new Blocks()
-  config: Config
-  viewerDiv: HTMLDivElement
+  decorations: monaco.editor.IEditorDecorationsCollection
+  editor: monaco.editor.IStandaloneCodeEditor
   editorDiv: HTMLDivElement
+  mdEngine = new MarkdownIt()
+  pool = new DataPool
+  viewerDiv: HTMLDivElement
 
-  update(selected: number) {
-    const { viewerDiv, blocks, editor } = this
-    $(viewerDiv).find(`[x-block]`).removeClass('selected')
-    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
-    blocks.highlight(selected)
-    //update block position for scrolling
-    const viewTop = viewerDiv.getBoundingClientRect().top
-    blocks.blocks.forEach(b => {
-      b.position.inEditor = editor.getTopForLineNumber(b.start)
-      b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
-        .getBoundingClientRect().top - viewTop
+  constructor() {
+    this.update = _.debounce(this.update, 100)
+    const { mdEngine } = this
+    mdEngine.use(InjectLineNumber)
+    mdEngine.use(markdownContainer, 'warning')
+
+    addParser('mermaid', (content, idx) => {
+      const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
+      return svg
+    })
+
+    addParser('dot', content => {
+      content = content.trim()
+      if (!(content.startsWith('digraph') || content.startsWith('graph'))) {
+        const head = content.includes('->') ? 'digraph' : 'graph'
+        content = ` ${head} { 
+          ${content}
+      }`
+      }
+      const svg = viz.layout(content)
+      return svg
     })
   }
 
-  createSuggestions(range: monaco.IRange) {
+  private createSuggestions(range: monaco.IRange) {
     const kind = monaco.languages.CompletionItemKind.Function
     return this.config.suggestions.map(s => {
       return {
@@ -139,10 +154,70 @@ class EditorContext {
     })
   }
 
+  private onEditorScroll() {
+    const { viewerDiv, editorDiv, editor, blocks } = this
+    if (!isMouseInElement(editorDiv)) return
+    const scrollTop = editor.getScrollTop(),
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inEditor > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inEditor)
+        / (topBlock.position.inEditor - prev.position.inEditor),
+      newTop = prev.position.inView + ((topBlock.position.inView - prev.position.inView) * percentage)
+    viewerDiv.parentElement.scrollTop = newTop
+  }
+
+  editorCreated(editor: monaco.editor.IStandaloneCodeEditor, onSave: (content: string) => void) {
+    this.editor = editor
+    this.onSave = onSave
+    monaco.languages.registerCompletionItemProvider("markdown", {
+      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
+        const word = model.getWordUntilPosition(position)
+        if (position.column !== 1) return { suggestions: [] }
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        }
+        return {
+          suggestions: this.createSuggestions(range)
+        }
+      }
+    })
+    parserList.forEach(p => {
+      monaco.languages.register({ id: p.language })
+    })
+
+    editor.onDidScrollChange(() => {
+      this.onEditorScroll()
+    })
+  }
+
+  getCode() {
+    const content = this.editor.getModel().getValue()
+    return this.pool.patch(content)
+  }
+
+  onViewerScroll() {
+    const { viewerDiv, editor, blocks } = this
+    if (!isMouseInElement(viewerDiv.parentElement)) return
+    const scrollTop = viewerDiv.parentElement.scrollTop,
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inView > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inView)
+        / (topBlock.position.inView - prev.position.inView),
+      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
+    editor.setScrollTop(newTop)
+  }
 
   async preload() {
     this.blocks.context = this
     this.config = await (await fetch('./config.json')).json()
+    viz = await Viz.create()
     document.addEventListener('keydown', async evt => {
       if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
         let imageText = ''
@@ -168,48 +243,21 @@ class EditorContext {
         if (this.onSave) this.onSave(this.getCode())
       }
     })
+    document.addEventListener('mousemove', onMouseMove)
   }
 
-  pool = new DataPool
-
-  constructor() {
-    this.update = _.debounce(this.update, 100)
-  }
-
-  onSave: (content: string) => void
-
-
-  getCode() {
-    const content = this.editor.getModel().getValue()
-    return this.pool.patch(content)
-  }
-
-  onEditorScroll() {
-    const { viewerDiv, editorDiv, editor, blocks } = this
-    if (!isMouseInElement(editorDiv)) return
-    const scrollTop = editor.getScrollTop(),
-      blockList = [new Block(), ...blocks.blocks],
-      topBlock = blockList.find(b => b.position.inEditor > scrollTop)
-    if (!topBlock) return
-    const prev = blockList[blockList.indexOf(topBlock) - 1],
-      percentage = (scrollTop - prev.position.inEditor)
-        / (topBlock.position.inEditor - prev.position.inEditor),
-      newTop = prev.position.inView + ((topBlock.position.inView - prev.position.inView) * percentage)
-    viewerDiv.parentElement.scrollTop = newTop
-  }
-
-  onViewerScroll() {
-    const { viewerDiv, editor, blocks } = this
-    if (!isMouseInElement(viewerDiv.parentElement)) return
-    const scrollTop = viewerDiv.parentElement.scrollTop,
-      blockList = [new Block(), ...blocks.blocks],
-      topBlock = blockList.find(b => b.position.inView > scrollTop)
-    if (!topBlock) return
-    const prev = blockList[blockList.indexOf(topBlock) - 1],
-      percentage = (scrollTop - prev.position.inView)
-        / (topBlock.position.inView - prev.position.inView),
-      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
-    editor.setScrollTop(newTop)
+  update(selected: number) {
+    const { viewerDiv, blocks, editor } = this
+    $(viewerDiv).find(`[x-block]`).removeClass('selected')
+    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
+    blocks.highlight(selected)
+    //update block position for scrolling
+    const viewTop = viewerDiv.getBoundingClientRect().top
+    blocks.blocks.forEach(b => {
+      b.position.inEditor = editor.getTopForLineNumber(b.start)
+      b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
+        .getBoundingClientRect().top - viewTop
+    })
   }
 }
 
@@ -241,7 +289,7 @@ const MousePosition = {
   y: 0
 }
 
-function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+function onMouseMove(e: MouseEvent) {
   Object.assign(MousePosition, {
     x: e.clientX,
     y: e.clientY
@@ -253,5 +301,5 @@ function isMouseInElement(ele: HTMLElement) {
   return _.inRange(MousePosition.x, left, right) && _.inRange(MousePosition.y, top, bottom)
 }
 
-export { EditorContext, onMouseMove }
+export { EditorContext }
 

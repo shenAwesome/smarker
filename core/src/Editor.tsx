@@ -1,30 +1,20 @@
 
+import { useSize } from "ahooks"
 import $ from "cash-dom"
 import classNames from "classnames"
 import 'github-markdown-css'
 import _ from 'lodash'
-import MarkdownIt from 'markdown-it'
-import markdownContainer from 'markdown-it-container'
 import * as monaco from 'monaco-editor'
 import React, { SyntheticEvent, useEffect, useState } from "react"
 import { Item, ItemParams, Menu, useContextMenu } from 'react-contexify'
 import 'react-contexify/ReactContexify.css'
 import ReactDOM from "react-dom"
+import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
+import { EditorContext } from "./EditorContext"
 import './manaco/userWorker'
-import { InjectLineNumber, parserList } from './plugins/InjectLineNumber'
-import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
-import { EditorContext, onMouseMove } from "./EditorContext"
-import { useSize } from "ahooks"
-
 const MENU_ID = 'mdEditorMenu'
-
-const context = new EditorContext
-
-const mdEngine = new MarkdownIt()
-mdEngine.use(InjectLineNumber)
-mdEngine.use(markdownContainer, 'warning')
 
 function useRefresh() {
   const [_, setNum] = useState(0)
@@ -57,12 +47,14 @@ function createRef<T>(obj: T, key: keyof T) {
 interface EditorProps {
   code: string
   onSave: (content: string) => void
+  context: EditorContext
 }
 
 
-function Editor({ code, onSave }: EditorProps) {
+function Editor({ code, onSave, context }: EditorProps) {
   const [_splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const [text, setText] = useState(code)
+  const [selected, setSelected] = useState(-1)
   const { blocks } = context
   const minSize = 200
 
@@ -71,7 +63,7 @@ function Editor({ code, onSave }: EditorProps) {
   const splitSize = Math.min(_splitSize, (size ? size.width : 4000) - 200)
 
   useEffect(() => {//first time
-    context.onSave = onSave
+
     const { editorDiv } = context
     const editor = monaco.editor.create(editorDiv, {
       fontSize: 20, wordWrap: 'on',
@@ -80,7 +72,8 @@ function Editor({ code, onSave }: EditorProps) {
       language: "markdown"
     })
 
-    Object.assign(context, { editor })
+    context.editorCreated(editor, onSave)
+
     editor.onDidChangeModelContent(_.debounce(() => {
       setText(context.getCode())
     }, 200))
@@ -90,34 +83,10 @@ function Editor({ code, onSave }: EditorProps) {
       const block = blocks.getByLine(pos.lineNumber)
       if (block) setSelected(block.index)
     })
-
-    editor.onDidScrollChange(() => {
-      context.onEditorScroll()
-    })
-
-    monaco.languages.registerCompletionItemProvider("markdown", {
-      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
-        const word = model.getWordUntilPosition(position)
-        if (position.column !== 1) return { suggestions: [] }
-        const range = {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn
-        }
-        return {
-          suggestions: context.createSuggestions(range)
-        }
-      }
-    })
-
-    parserList.forEach(p => {
-      monaco.languages.register({ id: p.language })
-    })
   }, [])
 
   useEffect(() => {//on text changed
-    const { viewerDiv, editor } = context
+    const { viewerDiv, editor, mdEngine } = context
 
     const view = $(viewerDiv)
     view.html(mdEngine.render(text))
@@ -137,8 +106,6 @@ function Editor({ code, onSave }: EditorProps) {
     })
   }, [text])
 
-
-  const [selected, setSelected] = useState(-1)
   const [_showEditor, setShowEditor] = useStorage('setShowEditor', 'true')
   const showEditor = _showEditor == 'true'
 
@@ -175,7 +142,7 @@ function Editor({ code, onSave }: EditorProps) {
   }, 200)
 
   return <>
-    <div className={classNames("MDEditor", { hideEditor: !showEditor })} onMouseMove={onMouseMove}  >
+    <div className={classNames("MDEditor", { hideEditor: !showEditor })}    >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
         size={splitSize} onChange={setSplitSize} >
         <div className='SPane left'>
@@ -201,10 +168,12 @@ function Editor({ code, onSave }: EditorProps) {
 
 async function createEditor(container: HTMLElement,
   code: string, onSave: (code: string) => void) {
+  const context = new EditorContext
   await context.preload()
   ReactDOM.render(
-    <React.StrictMode>  <Editor code={code} onSave={onSave} /> </React.StrictMode>,
-    container
+    <React.StrictMode>
+      <Editor code={code} onSave={onSave} context={context} />
+    </React.StrictMode>, container
   )
 }
 
