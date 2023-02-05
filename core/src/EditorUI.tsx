@@ -12,7 +12,6 @@ import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
 import SplitPane from 'react-split-pane'
 import './css/Editor.scss'
 import { EditorContext } from "./EditorContext"
-import './manaco/userWorker'
 const MENU_ID = 'mdEditorMenu'
 
 function useRefresh() {
@@ -63,15 +62,7 @@ function EditorUI({ code, onSave, context }: EditorProps) {
 
   useEffect(() => {//first time
 
-    const { editorDiv } = context
-    const editor = monaco.editor.create(editorDiv, {
-      fontSize: 20, wordWrap: 'on',
-      glyphMargin: false, smoothScrolling: false, automaticLayout: true,
-      theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
-      language: "markdown"
-    })
-
-    context.editorCreated(editor, onSave)
+    const editor = context.initEditor(onSave)
 
     editor.onDidChangeModelContent(_.debounce(() => {
       setText(context.getCode())
@@ -82,6 +73,7 @@ function EditorUI({ code, onSave, context }: EditorProps) {
       const block = blocks.getByLine(pos.lineNumber)
       if (block) setSelected(block.index)
     })
+
   }, [])
 
   useEffect(() => {//on text changed

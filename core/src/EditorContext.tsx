@@ -1,17 +1,14 @@
 
-import { Viz } from "@aslab/graphvizjs"
 import $ from "cash-dom"
 import 'github-markdown-css'
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
 import markdownContainer from 'markdown-it-container'
-import mermaid from "mermaid"
 import * as monaco from 'monaco-editor'
 import 'react-contexify/ReactContexify.css'
 import './css/Editor.scss'
 import './manaco/userWorker'
 import { addParser, Handle, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
-let viz: Viz
 
 class Block {
   index = -1
@@ -155,8 +152,13 @@ class EditorContext {
     viewerDiv.parentElement.scrollTop = newTop
   }
 
-  editorCreated(editor: monaco.editor.IStandaloneCodeEditor, onSave: (content: string) => void) {
-    this.editor = editor
+  initEditor(onSave: (content: string) => void) {
+    this.editor = monaco.editor.create(this.editorDiv, {
+      fontSize: 20, wordWrap: 'on',
+      glyphMargin: false, smoothScrolling: false, automaticLayout: true,
+      theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
+      language: "markdown"
+    })
     this.onSave = onSave
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
@@ -176,10 +178,10 @@ class EditorContext {
     parserList.forEach(p => {
       monaco.languages.register({ id: p.language })
     })
-
-    editor.onDidScrollChange(() => {
+    this.editor.onDidScrollChange(() => {
       this.onEditorScroll()
     })
+    return this.editor
   }
 
   getCode() {
@@ -204,7 +206,7 @@ class EditorContext {
   async preload() {
     this.blocks.context = this
     this.config = await (await fetch('./config.json')).json()
-    viz = await Viz.create()
+
     document.addEventListener('keydown', async evt => {
       if (evt.key == 'v' && evt.ctrlKey) {  //enable image paste
         let imageText = ''
