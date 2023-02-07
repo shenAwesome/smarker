@@ -33,25 +33,28 @@
             this.webView21.CreationProperties = null;
             this.webView21.DefaultBackgroundColor = System.Drawing.Color.White;
             this.webView21.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.webView21.Location = new System.Drawing.Point(2, 2);
+            this.webView21.Location = new System.Drawing.Point(3, 2);
+            this.webView21.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.webView21.Name = "webView21";
-            this.webView21.Size = new System.Drawing.Size(756, 510);
+            this.webView21.Size = new System.Drawing.Size(463, 403);
             this.webView21.TabIndex = 0;
             this.webView21.ZoomFactor = 1D;
             // 
-            // Form1
+            // WebForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(760, 514);
+            this.ClientSize = new System.Drawing.Size(469, 407);
             this.Controls.Add(this.webView21);
-            this.Name = "Form1";
-            this.Padding = new System.Windows.Forms.Padding(2);
+            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Name = "WebForm";
+            this.Padding = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Text = "Form1";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.webView21)).EndInit();
             this.ResumeLayout(false);
+
         }
 
         #endregion

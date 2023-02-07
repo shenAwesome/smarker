@@ -13,7 +13,9 @@ namespace SMarkdownReader {
         static void Main() {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new WebForm());
+            var form = new WebForm();
+            form.AddHandler(new CoreHandler());
+            Application.Run(form);
         }
     }
 }

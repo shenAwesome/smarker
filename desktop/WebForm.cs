@@ -2,23 +2,37 @@
 using Microsoft.Web.WebView2.Core;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace SMarkdownReader {
 
 
     public partial class WebForm : Form {
-        private string _filePath;
-        private FileSystemWatcher _watcher;
+
+        private readonly List<WebHandler> handlers = new List<WebHandler>();
+
+        public void AddHandler(WebHandler handler) {
+            handler.Init(this);
+            handlers.Add(handler);
+        }
 
         public WebForm() {
             InitializeComponent();
             webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
             StartPosition = FormStartPosition.CenterScreen;
+        }
+
+        private void fireEvent(object sender, FormEvent e) {
+            View.PostWebMessageAsJson(JsonConvert.SerializeObject(e));
+        }
+
+        private CoreWebView2 View {
+            get {
+                return webView21.CoreWebView2;
+            }
         }
 
         private void WebViewInitialized(object sender, CoreWebView2InitializationCompletedEventArgs e) {
@@ -40,6 +54,7 @@ namespace SMarkdownReader {
         private void Form1_Load(object sender, EventArgs e) {
             var location = FormLocation.FromJSON(Properties.Settings.Default.FormLocation);
             location?.Write(this);
+            handlers.ForEach(h => h.Event += fireEvent);
             InitializeAsync();
         }
 
@@ -47,55 +62,31 @@ namespace SMarkdownReader {
             var options = new CoreWebView2EnvironmentOptions("--allow-file-access-from-files");
             var environment = await CoreWebView2Environment.CreateAsync(null, null, options);
             await webView21.EnsureCoreWebView2Async(environment);
-            var view = webView21.CoreWebView2;
-            view.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html");
-            view.DOMContentLoaded += View_DOMContentLoaded;
-            view.WebMessageReceived += View_WebMessageReceived;
+            //View.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html"); 
+            View.DOMContentLoaded += View_DOMContentLoaded;
+            View.WebMessageReceived += View_WebMessageReceived;
+            View.Navigate("http://localhost:4000/");
         }
 
         private void View_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
             var content = args.WebMessageAsJson;
             var message = JsonConvert.DeserializeObject<Request>(content);
             HandleRequest(message);
-            var view = webView21.CoreWebView2;
-            view.PostWebMessageAsJson(JsonConvert.SerializeObject(message));
+            View.PostWebMessageAsJson(JsonConvert.SerializeObject(message));
         }
 
         private void View_DOMContentLoaded(object sender, CoreWebView2DOMContentLoadedEventArgs e) {
             Debug.WriteLine("loaded");
         }
 
-        private void HandleRequest(Request webMessage) {
-
-        }
-
-        private void OpenFile(string filePath) {
-            _filePath = filePath;
-            if (_watcher != null) _watcher.Dispose();
-            _watcher = new FileSystemWatcher {
-                Path = Path.GetDirectoryName(_filePath),
-                Filter = Path.GetFileName(_filePath)
-            };
-            _watcher.Changed += new FileSystemEventHandler((object source, FileSystemEventArgs fe) => {
-                OpenFile(_filePath);
-            });
-            _watcher.EnableRaisingEvents = true;
-
-            string text = "";
-
-            int NumberOfRetries = 10;
-            int DelayOnRetry = 100;
-
-            for (int i = 1; i <= NumberOfRetries; ++i) {
+        private void HandleRequest(Request request) {
+            handlers.ForEach(h => {
                 try {
-                    text = File.ReadAllText(_filePath);
-                    break; // When done we can break loop
-                } catch (IOException) when (i <= NumberOfRetries) {
-                    Thread.Sleep(DelayOnRetry);
+                    h.HandleRequest(request);
+                } catch (Exception e) {
+                    Debug.WriteLine(e.Message);
                 }
-            }
-            var css = @"<link rel='stylesheet' href='http://markdowncss.github.io/retro/css/retro.css'>";
-            RunUI(() => webView21.NavigateToString(text));
+            });
         }
 
         public void RunUI(Action action) {
@@ -154,17 +145,27 @@ namespace SMarkdownReader {
         }
     }
 
-    class Request {
-        readonly string _type_ = "Request";
-        string id;
-        string type;
-        string message;
+    public class Request {
+        public string _type_ = "Request";
+        public string id;
+        public string method;
+        public string[] parameters;
+        public string payload;
+    }
+
+    public class FormEvent {
+        string _type_ = "Event";
         string payload;
     }
 
-    class Signal {
-        readonly string _type_ = "Signal";
-        string message;
-    }
+    public abstract class WebHandler {
 
+        public event EventHandler<FormEvent> Event;
+        protected void OnEvent(FormEvent e) {
+            Event?.Invoke(this, e);
+        }
+
+        public abstract void Init(Form form);
+        public abstract void HandleRequest(Request request);
+    }
 }
