@@ -1,21 +1,19 @@
-﻿
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SMarkdownReader {
-
 
     public partial class WebForm : Form {
 
         private readonly List<WebHandler> handlers = new List<WebHandler>();
 
         public void AddHandler(WebHandler handler) {
-            handler.Init(this);
             handlers.Add(handler);
         }
 
@@ -31,6 +29,7 @@ namespace SMarkdownReader {
 
         private void fireEvent(object sender, FormEvent e) {
             View.PostWebMessageAsJson(JsonConvert.SerializeObject(e));
+
         }
 
         private CoreWebView2 View {
@@ -46,6 +45,12 @@ namespace SMarkdownReader {
                 ev.Handled = true;
                 def.Complete();
             };
+            foreach (var handler in handlers) {
+                handler.form = this;
+                handler.view = View;
+                handler.Init();
+            }
+        }
             View.Settings.AreBrowserAcceleratorKeysEnabled = false;
             View.Settings.IsPasswordAutosaveEnabled = false;
         }
@@ -60,7 +65,6 @@ namespace SMarkdownReader {
         private void Form1_Load(object sender, EventArgs e) {
             var location = FormLocation.FromJSON(Properties.Settings.Default.FormLocation);
             location?.Write(this);
-            handlers.ForEach(h => h.Event += fireEvent);
             InitializeAsync();
         }
 
@@ -162,18 +166,33 @@ namespace SMarkdownReader {
     }
 
     public class FormEvent {
-        string _type_ = "Event";
-        string payload;
+        public string type;
+        public string payload;
+        public FormEvent(string type, object payload = null) {
+            this.type = type;
+            if (payload != null) {
+                this.payload = JsonConvert.SerializeObject(payload);
+            }
+        }
     }
 
     public abstract class WebHandler {
+        public Form form;
+        public CoreWebView2 view;
+        public abstract void Init();
+        public abstract void HandleRequest(Request request);
 
-        public event EventHandler<FormEvent> Event;
-        protected void OnEvent(FormEvent e) {
-            Event?.Invoke(this, e);
+
+        async protected Task<bool> FireEvent(string name) {
+            var evt = new FormEvent(name);
+            return await FireEvent(evt);
         }
 
-        public abstract void Init(Form form);
-        public abstract void HandleRequest(Request request);
+        async protected Task<bool> FireEvent(FormEvent evt) {
+            var script = string.Format("fireFormEvent('{0}')",
+                JsonConvert.SerializeObject(evt));
+            var ret = await view.ExecuteScriptAsync(script);
+            return (ret == "true");
+        }
     }
 }
