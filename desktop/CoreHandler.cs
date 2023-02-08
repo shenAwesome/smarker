@@ -68,10 +68,22 @@ namespace SMarkdownReader {
             }
         }
 
-        private Form form;
+        public override void Init() {
+            form.FormClosing += (object sender, FormClosingEventArgs e) => {
+                if (!closeConfirmed) {
+                    e.Cancel = true;
+                    TryCloseForm();
+                }
+            };
+        }
 
-        public override void Init(Form form) {
-            this.form = form;
+        bool closeConfirmed = false;
+        private async void TryCloseForm() {
+            var cancel = await FireEvent("FormClosing");
+            if (!cancel) {
+                closeConfirmed = true;
+                form.Close();
+            }
         }
     }
 }
