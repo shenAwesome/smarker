@@ -13,7 +13,8 @@ namespace SMarkdownReader {
         static void Main() {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            var form = new WebForm();
+            var url = "file:///D:/code/github/mdeditor/core/dist/index.html";
+            var form = new WebForm(url);
             form.AddHandler(new CoreHandler());
             Application.Run(form);
         }

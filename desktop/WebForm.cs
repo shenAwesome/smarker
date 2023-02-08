@@ -19,10 +19,14 @@ namespace SMarkdownReader {
             handlers.Add(handler);
         }
 
-        public WebForm() {
+        private readonly string url;
+
+        public WebForm(string url) {
+            this.url = url;
             InitializeComponent();
             webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
             StartPosition = FormStartPosition.CenterScreen;
+            //Icon = new Icon("abc");
         }
 
         private void fireEvent(object sender, FormEvent e) {
@@ -36,12 +40,14 @@ namespace SMarkdownReader {
         }
 
         private void WebViewInitialized(object sender, CoreWebView2InitializationCompletedEventArgs e) {
-            webView21.CoreWebView2.PermissionRequested += (object _, CoreWebView2PermissionRequestedEventArgs ev) => {
+            View.PermissionRequested += (object _, CoreWebView2PermissionRequestedEventArgs ev) => {
                 var def = ev.GetDeferral();
                 ev.State = CoreWebView2PermissionState.Allow;
                 ev.Handled = true;
                 def.Complete();
             };
+            View.Settings.AreBrowserAcceleratorKeysEnabled = false;
+            View.Settings.IsPasswordAutosaveEnabled = false;
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
@@ -65,7 +71,9 @@ namespace SMarkdownReader {
             //View.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html"); 
             View.DOMContentLoaded += View_DOMContentLoaded;
             View.WebMessageReceived += View_WebMessageReceived;
-            View.Navigate("http://localhost:4000/");
+            View.Navigate(url);
+            //var test = View.ExecuteScriptAsync("").Result;
+            //http://localhost:4000/
         }
 
         private void View_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
