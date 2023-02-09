@@ -58,13 +58,26 @@ namespace SMarkdownReader {
 
         public void SetTitle(string title) {
             form.Text = title;
+            form.Opacity = 1;
         }
+
+        public void CloseForm() {
+            closeConfirmed = true;
+            form.Close();
+        }
+
 
         public override void HandleRequest(Request request) {
             var method = typeof(CoreHandler).GetMethod(request.method);
             if (method != null) {
-                var ret = method.Invoke(this, request.parameters);
-                request.payload = JsonConvert.SerializeObject(ret);
+                try {
+                    var ret = method.Invoke(this, request.parameters);
+                    request.payload = JsonConvert.SerializeObject(ret);
+                } catch (Exception e) {
+                    request.error = e.Message;
+                }
+            } else {
+                request.error = "Missing Method";
             }
         }
 
@@ -72,18 +85,11 @@ namespace SMarkdownReader {
             form.FormClosing += (object sender, FormClosingEventArgs e) => {
                 if (!closeConfirmed) {
                     e.Cancel = true;
-                    TryCloseForm();
+                    FireEvent("FormClosing");
                 }
             };
         }
 
         bool closeConfirmed = false;
-        private async void TryCloseForm() {
-            var cancel = await FireEvent("FormClosing");
-            if (!cancel) {
-                closeConfirmed = true;
-                form.Close();
-            }
-        }
     }
 }

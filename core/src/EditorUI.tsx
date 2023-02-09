@@ -44,12 +44,11 @@ function createRef<T>(obj: T, key: keyof T) {
 
 interface EditorProps {
   code: string
-  onSave: (content: string) => void
   context: EditorContext
 }
 
 
-function EditorUI({ code, onSave, context }: EditorProps) {
+function EditorUI({ code, context }: EditorProps) {
   const [_splitSize, setSplitSize] = useStorageInt('splitSize', 500)
   const [text, setText] = useState(code)
   const [selected, setSelected] = useState(-1)
@@ -62,7 +61,7 @@ function EditorUI({ code, onSave, context }: EditorProps) {
 
   useEffect(() => {//first time
 
-    const editor = context.init(onSave)
+    const editor = context.init()
 
     editor.onDidChangeModelContent(_.debounce(() => {
       setText(context.getCode())

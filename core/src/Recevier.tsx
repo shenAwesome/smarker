@@ -16,34 +16,40 @@ interface FormEvent {
   cancel: boolean
 }
 
+const webview = (window as any)?.chrome?.webview
+if (webview) webview.addEventListener('message', (evt: any) => {
+  if ((window as any)['onWebViewMessage']) {
+    (window as any)['onWebViewMessage'](evt)
+  }
+})
+
 class Recevier {
 
   private timeout = 5 //sec
   private pool = [] as Request[]
 
-  webview = null as any
   constructor() {
-    const webview = this.webview = (window as any)?.chrome?.webview
     if (!webview) return
     const { pool } = this
-    webview.addEventListener('message', (evt: any) => {
+
+    const onWebViewMessage = (evt: any) => {
       if (evt.data?._type_ == 'Request') {
         const request = evt.data as Request
         pool.find(p => p.id == request.id).payload = request.payload || '-Null-'
       }
-    })
+    }
 
     const fireFormEvent = (evtJSON: string) => {
-      const evt = JSON.parse(evtJSON)
+      const evt = JSON.parse(evtJSON) as FormEvent
       this.onEvent(evt)
       return (evt.cancel == true)
     }
-    Object.assign(window, { fireFormEvent })
+
+    Object.assign(window, { fireFormEvent, onWebViewMessage })
   }
 
-  private async request(method: string, parameters: string[]) {
+  private async request(method: string, parameters: string[] = []) {
     const { pool } = this
-    const { webview } = this
     if (!webview) return
     const request = new Request(method, parameters)
     pool.push(request)
@@ -55,13 +61,15 @@ class Recevier {
       if (Date.now() - start > this.timeout * 1000) break
     }
     _.pull(pool, request)
-    const { payload } = request
-    return payload == '-Null-' ? null : JSON.parse(request.payload.replaceAll(`\\\\`, '/'))
+    if (request.error) {
+      console.error(request.error)
+    }
+    const payload = request.payload.replaceAll(`\\\\`, '/')
+    return (payload == '-Null-') ? null : JSON.parse(payload)
   }
 
   async home() {
-    const ret = await this.request('Home', [])
-    return ret as {
+    const ret = await this.request('Home', []) as {
       Args: string[],
       Culture: string,
       ExecutablePath: string,
@@ -71,10 +79,24 @@ class Recevier {
       UserName: string,
       UserProfile: string
     }
+    return ret
   }
 
-  onEvent(evt: FormEvent) {
-    this.listeners.filter(l => l.type == evt.type).forEach(l => l.handle(evt))
+  async readFile(path: string) {
+    return await this.request('ReadFile', [path]) as string
+  }
+
+  async writeFile(path: string, content: string) {
+    await this.request('WriteFile', [path, content])
+  }
+
+  async closeForm() {
+    await this.request('CloseForm', [])
+  }
+
+  async onEvent(evt: FormEvent) {
+    const listeners = this.listeners.filter(l => l.type == evt.type)
+    for (const l of listeners) l.handle(evt)
   }
 
   private listeners = [] as Listener[]
@@ -84,6 +106,13 @@ class Recevier {
 
   async setTitle(title: string) {
     this.request('SetTitle', [title])
+  }
+
+  onClose(onClose: () => Promise<boolean>) {
+    this.addListener('FormClosing', async () => {
+      const ret = await onClose()
+      if (ret) this.closeForm()
+    })
   }
 }
 
@@ -97,6 +126,7 @@ class Request {
   public _type_ = "Request";
   public id: string
   public payload: string
+  public error: string
   constructor(public method: string, public parameters: string[]) {
     this.id = Math.random() + '_' + Date.now()
   }

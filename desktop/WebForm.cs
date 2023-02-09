@@ -24,6 +24,7 @@ namespace SMarkdownReader {
             InitializeComponent();
             webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
             StartPosition = FormStartPosition.CenterScreen;
+            Opacity = 0;
             //Icon = new Icon("abc");
         }
 
@@ -34,7 +35,7 @@ namespace SMarkdownReader {
 
         private CoreWebView2 View {
             get {
-                return webView21.CoreWebView2;
+                return webView21?.CoreWebView2;
             }
         }
 
@@ -50,9 +51,10 @@ namespace SMarkdownReader {
                 handler.view = View;
                 handler.Init();
             }
-        }
+
             View.Settings.AreBrowserAcceleratorKeysEnabled = false;
             View.Settings.IsPasswordAutosaveEnabled = false;
+            View.OpenDevToolsWindow();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
@@ -84,7 +86,7 @@ namespace SMarkdownReader {
             var content = args.WebMessageAsJson;
             var message = JsonConvert.DeserializeObject<Request>(content);
             HandleRequest(message);
-            View.PostWebMessageAsJson(JsonConvert.SerializeObject(message));
+            View?.PostWebMessageAsJson(JsonConvert.SerializeObject(message));
         }
 
         private void View_DOMContentLoaded(object sender, CoreWebView2DOMContentLoadedEventArgs e) {
@@ -163,6 +165,7 @@ namespace SMarkdownReader {
         public string method;
         public string[] parameters;
         public string payload;
+        public string error;
     }
 
     public class FormEvent {
@@ -183,16 +186,15 @@ namespace SMarkdownReader {
         public abstract void HandleRequest(Request request);
 
 
-        async protected Task<bool> FireEvent(string name) {
+        protected void FireEvent(string name) {
             var evt = new FormEvent(name);
-            return await FireEvent(evt);
+            FireEvent(evt);
         }
 
-        async protected Task<bool> FireEvent(FormEvent evt) {
+        protected void FireEvent(FormEvent evt) {
             var script = string.Format("fireFormEvent('{0}')",
                 JsonConvert.SerializeObject(evt));
-            var ret = await view.ExecuteScriptAsync(script);
-            return (ret == "true");
+            view.ExecuteScriptAsync(script);
         }
     }
 }

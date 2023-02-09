@@ -105,9 +105,11 @@ class DataPool {
   }
 }
 
+type OnSave = (content: string) => Promise<void>
+
 class EditorContext {
   private config: Config
-  private onSave: (content: string) => void
+  public onSave: OnSave
   blocks = new Blocks()
   decorations: monaco.editor.IEditorDecorationsCollection
   editor: monaco.editor.IStandaloneCodeEditor
@@ -152,7 +154,7 @@ class EditorContext {
     viewerDiv.parentElement.scrollTop = newTop
   }
 
-  init(onSave: (content: string) => void) {
+  init() {
     this.blocks.context = this
     this.editor = monaco.editor.create(this.editorDiv, {
       fontSize: 20, wordWrap: 'on',
@@ -160,7 +162,6 @@ class EditorContext {
       theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
       language: "markdown"
     })
-    this.onSave = onSave
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
         const word = model.getWordUntilPosition(position)
@@ -205,12 +206,16 @@ class EditorContext {
       }
       if (evt.key == 's' && evt.ctrlKey) {//disable browser save
         evt.preventDefault()
-        if (this.onSave) this.onSave(this.getCode())
+        this.save()
       }
     })
     document.addEventListener('mousemove', onMouseMove)
-
     return this.editor
+  }
+
+  savedContent = "";
+  hasChange() {
+    return (this.savedContent !== this.getCode())
   }
 
   getCode() {
@@ -246,9 +251,17 @@ class EditorContext {
     })
   }
 
-  static async create() {
+  async save() {
+    const content = this.getCode()
+    if (this.onSave) await this.onSave(content)
+    this.savedContent = content
+  }
+
+  static async create(code: string, onSave: OnSave) {
     const context = new EditorContext
     context.config = await (await fetch('./config.json')).json()
+    context.onSave = onSave
+    context.savedContent = code
     return context
   }
 }
@@ -294,4 +307,4 @@ function isMouseInElement(ele: HTMLElement) {
 }
 
 export { EditorContext }
-
+export type { OnSave }

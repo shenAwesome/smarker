@@ -1,13 +1,13 @@
 import React from "react"
 import ReactDOM from "react-dom"
-import { EditorContext } from "./EditorContext"
+import { EditorContext, OnSave } from "./EditorContext"
 import { EditorUI } from "./EditorUI"
 import { Viz } from "@aslab/graphvizjs"
 import mermaid from "mermaid"
 
 async function createEditor(container: HTMLElement,
-  code: string, onSave: (code: string) => void) {
-  const context = await EditorContext.create()
+  code: string, onSave: OnSave) {
+  const context = await EditorContext.create(code, onSave)
   const viz = await Viz.create()
   context.addParser('mermaid', (content, idx) => {
     const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
@@ -26,9 +26,10 @@ async function createEditor(container: HTMLElement,
 
   ReactDOM.render(
     <React.StrictMode>
-      <EditorUI code={code} onSave={onSave} context={context} />
+      <EditorUI code={code} context={context} />
     </React.StrictMode>, container
   )
+  return context
 }
 
 export { createEditor }
