@@ -6,7 +6,7 @@ import { Viz } from "@aslab/graphvizjs"
 import mermaid from "mermaid"
 
 async function createEditor(container: HTMLElement,
-  code: string, onSave: OnSave) {
+  code: string, onSave?: OnSave) {
   const context = await EditorContext.create(code, onSave)
   const viz = await Viz.create()
   context.addParser('mermaid', (content, idx) => {

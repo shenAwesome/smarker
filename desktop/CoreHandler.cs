@@ -19,7 +19,10 @@ namespace SMarkdownReader {
             var OSVersion = Environment.OSVersion.ToString();
             var LocalIPs = Dns.GetHostAddresses(Dns.GetHostName()).Select(x => x.ToString());
             var Culture = CultureInfo.CurrentUICulture.Name;
-            return new { UserProfile, ExecutablePath, Args, UserName, MachineName, OSVersion, LocalIPs, Culture };
+            return new {
+                UserProfile, ExecutablePath, Args, UserName,
+                MachineName, OSVersion, LocalIPs, Culture
+            };
         }
 
         public string[] GetFiles(string path) {

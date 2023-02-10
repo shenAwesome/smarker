@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -17,10 +18,7 @@ namespace SMarkdownReader {
             handlers.Add(handler);
         }
 
-        private readonly string url;
-
-        public WebForm(string url) {
-            this.url = url;
+        public WebForm() {
             InitializeComponent();
             webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
             StartPosition = FormStartPosition.CenterScreen;
@@ -72,14 +70,15 @@ namespace SMarkdownReader {
 
         async void InitializeAsync() {
             var options = new CoreWebView2EnvironmentOptions("--allow-file-access-from-files");
-            var environment = await CoreWebView2Environment.CreateAsync(null, null, options);
+            var UserDataFolder = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                         "SMarkdownEditorWeb"); ;
+            var environment = await CoreWebView2Environment.CreateAsync(null, UserDataFolder, options);
             await webView21.EnsureCoreWebView2Async(environment);
             //View.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html"); 
             View.DOMContentLoaded += View_DOMContentLoaded;
             View.WebMessageReceived += View_WebMessageReceived;
-            View.Navigate(url);
-            //var test = View.ExecuteScriptAsync("").Result;
-            //http://localhost:4000/
+            View.Navigate("http://localhost:4000/");
         }
 
         private void View_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args) {

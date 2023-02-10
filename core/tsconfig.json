@@ -18,7 +18,8 @@
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "skipLibCheck": true,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "removeComments": true
   },
   "include": [
     "src"
