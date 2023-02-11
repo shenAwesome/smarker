@@ -9,21 +9,29 @@ async function main() {
   const receiver = new Recevier
   const container = document.getElementById('root')
   const home = await receiver.home()
-  //const filePath = home.Args[1] || "D:/temp/test.md" 
   if (home) {
     console.log('ret: ', home)
-    const filePath = "D:/temp/test.md"
+    let filePath = home.Args[1]
     const fileContent = await receiver.readFile(filePath)
+
     const editor = await createEditor(container, fileContent, async (content) => {//onSave
       await receiver.writeFile(filePath, content)
     })
     await receiver.setTitle(filePath)
+    async function save() {
+      const content = editor.getCode()
+      await receiver.writeFile(filePath, content)
+    }
     receiver.onClose(async () => {
       if (editor.hasChange()) {
-        const content = editor.getCode()
-        await receiver.writeFile(filePath, content)
+        await save()
       }
       return true
+    })
+    receiver.addListener("Reload", async (evt) => {
+      await save()
+      //reload whole page 
+      location.reload()
     })
   } else {//testing in browser
     await createEditor(container, "helloWorld")

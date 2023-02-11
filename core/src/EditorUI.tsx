@@ -4,7 +4,6 @@ import $ from "cash-dom"
 import classNames from "classnames"
 import 'github-markdown-css'
 import _ from 'lodash'
-import * as monaco from 'monaco-editor'
 import React, { SyntheticEvent, useEffect, useState } from "react"
 import { Item, ItemParams, Menu, useContextMenu } from 'react-contexify'
 import 'react-contexify/ReactContexify.css'
@@ -19,19 +18,23 @@ function useRefresh() {
   return () => setNum(Date.now)
 }
 
-function useStorage(key: string, defaultValue = "") {
+
+
+function useStorage<T extends Object>(key: string, defaultValue: T) {
   const refresh = useRefresh()
-  const value = localStorage.getItem(key) || defaultValue
-  const setValue = (val: string) => {
-    localStorage.setItem(key, val)
+  const saved = localStorage.getItem(key)
+  let value = defaultValue
+  if (saved) {
+    try {
+      value = JSON.parse(saved)
+    } catch (e) { }
+  }
+  const setValue = (val: Partial<T>) => {
+    val = { ...value, ...val }
+    localStorage.setItem(key, JSON.stringify(val))
     refresh()
   }
-  return [value, setValue] as [string, (val: string) => void]
-}
-
-function useStorageInt(key: string, defaultValue = 0): [number, (val: number) => void] {
-  const [value, setValue] = useStorage(key, defaultValue.toString())
-  return [parseInt(value), (val: number) => setValue(val.toString())]
+  return [value, setValue] as [T, (val: Partial<T>) => void]
 }
 
 function createRef<T>(obj: T, key: keyof T) {
@@ -49,29 +52,42 @@ interface EditorProps {
 
 
 function EditorUI({ code, context }: EditorProps) {
-  const [_splitSize, setSplitSize] = useStorageInt('splitSize', 500)
+  const [config, setConfig] = useStorage('mdreader_config', {
+    splitSize: 500,
+    showEditor: true
+  })
+
   const [text, setText] = useState(code)
   const [selected, setSelected] = useState(-1)
   const { blocks } = context
   const minSize = 200
-
   const { show } = useContextMenu({ id: MENU_ID })
   const size = useSize(document.querySelector('body'))
-  const splitSize = Math.min(_splitSize, (size ? size.width : 4000) - 200)
+  const splitSize = Math.min(config.splitSize, (size ? size.width : 4000) - 200)
+
+  function sleep(delay: number) {
+    return new Promise<void>(resolve => {
+      window.setTimeout(resolve, delay)
+    })
+  }
 
   useEffect(() => {//first time
 
     const editor = context.init()
 
-    editor.onDidChangeModelContent(_.debounce(() => {
-      setText(context.getCode())
-    }, 200))
-
-    editor.onDidChangeCursorPosition(() => {
+    function updateSelection() {
       const pos = editor.getPosition()
       const block = blocks.getByLine(pos.lineNumber)
       if (block) setSelected(block.index)
-    })
+    }
+
+    editor.onDidChangeModelContent(_.debounce(async () => {
+      setText(context.getCode())
+      await sleep(200)
+      updateSelection()
+    }, 200))
+
+    editor.onDidChangeCursorPosition(updateSelection)
 
   }, [])
 
@@ -82,6 +98,7 @@ function EditorUI({ code, context }: EditorProps) {
     view.html(mdEngine.render(text))
 
     const simplified = context.pool.simplify(text)
+
     if (editor.getModel().getValue() != simplified) {
       const position = editor.getPosition()
       editor.getModel().setValue(simplified)
@@ -96,13 +113,26 @@ function EditorUI({ code, context }: EditorProps) {
     })
   }, [text])
 
-  const [_showEditor, setShowEditor] = useStorage('setShowEditor', 'true')
-  const showEditor = _showEditor == 'true'
 
-  function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>): void {
-    const target = (event.target as HTMLElement).closest('[x-src]')
-    const blockIdx = target ? parseInt(target.getAttribute('x-block')) : -1
+  const { showEditor } = config
+
+  async function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>) {
+    const target = (event.target as HTMLElement).closest('[x-src]'),
+      blockIdx = target ? parseInt(target.getAttribute('x-block')) : -1,
+      block = context.blocks.get(blockIdx)
     setSelected(blockIdx)
+
+    if (block) {
+      await sleep(200)
+      const { editor, editorDiv } = context
+      const lineNumber = block.start
+      editor.setPosition({ lineNumber, column: 0 })
+      editor.focus()
+      const scrollTop = editor.getScrollTop()
+      if (!_.inRange(editor.getTopForLineNumber(lineNumber), scrollTop, scrollTop + editorDiv.clientHeight)) {
+        editor.revealLineNearTop(lineNumber)
+      }
+    }
   }
 
   useEffect(() => {
@@ -117,7 +147,7 @@ function EditorUI({ code, context }: EditorProps) {
     const viewerContainer = context.viewerDiv.parentElement
     switch (id) {
       case "edit":
-        setShowEditor((!showEditor) + "")
+        setConfig({ showEditor: !showEditor })
         break
       case "print":
         window.print()
@@ -134,7 +164,7 @@ function EditorUI({ code, context }: EditorProps) {
   return <>
     <div className={classNames("MDEditor", { hideEditor: !showEditor })}    >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
-        size={splitSize} onChange={setSplitSize} >
+        size={splitSize} onChange={size => setConfig({ splitSize: size })} >
         <div className='SPane left'>
           <main>
             <div className="monacoEditor" ref={createRef(context, "editorDiv")}></div>

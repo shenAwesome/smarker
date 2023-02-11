@@ -37,6 +37,8 @@ namespace SMarkdownReader {
             }
         }
 
+        public bool isDebug = false;
+
         private void WebViewInitialized(object sender, CoreWebView2InitializationCompletedEventArgs e) {
             View.PermissionRequested += (object _, CoreWebView2PermissionRequestedEventArgs ev) => {
                 var def = ev.GetDeferral();
@@ -52,7 +54,7 @@ namespace SMarkdownReader {
 
             View.Settings.AreBrowserAcceleratorKeysEnabled = false;
             View.Settings.IsPasswordAutosaveEnabled = false;
-            View.OpenDevToolsWindow();
+            if (isDebug) View.OpenDevToolsWindow();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e) {
@@ -68,6 +70,8 @@ namespace SMarkdownReader {
             InitializeAsync();
         }
 
+        public string IndexPage;
+
         async void InitializeAsync() {
             var options = new CoreWebView2EnvironmentOptions("--allow-file-access-from-files");
             var UserDataFolder = Path.Combine(
@@ -75,10 +79,10 @@ namespace SMarkdownReader {
                          "SMarkdownEditorWeb"); ;
             var environment = await CoreWebView2Environment.CreateAsync(null, UserDataFolder, options);
             await webView21.EnsureCoreWebView2Async(environment);
-            //View.Navigate("file:///D:/code/github/mdeditor/core/dist/index.html"); 
+
             View.DOMContentLoaded += View_DOMContentLoaded;
             View.WebMessageReceived += View_WebMessageReceived;
-            View.Navigate("http://localhost:4000/");
+            View.Navigate(IndexPage);
         }
 
         private void View_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
@@ -169,12 +173,10 @@ namespace SMarkdownReader {
 
     public class FormEvent {
         public string type;
-        public string payload;
+        public object payload;
         public FormEvent(string type, object payload = null) {
             this.type = type;
-            if (payload != null) {
-                this.payload = JsonConvert.SerializeObject(payload);
-            }
+            this.payload = payload;
         }
     }
 
@@ -185,14 +187,14 @@ namespace SMarkdownReader {
         public abstract void HandleRequest(Request request);
 
 
-        protected void FireEvent(string name) {
-            var evt = new FormEvent(name);
-            FireEvent(evt);
+        public void FireEvent(string name, object payload = null) {
+            FireEvent(new FormEvent(name, payload));
         }
 
-        protected void FireEvent(FormEvent evt) {
-            var script = string.Format("fireFormEvent('{0}')",
+        public void FireEvent(FormEvent evt) {
+            var script = string.Format("fireFormEvent(`{0}`)",
                 JsonConvert.SerializeObject(evt));
+            Debug.WriteLine(script);
             view.ExecuteScriptAsync(script);
         }
     }

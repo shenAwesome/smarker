@@ -1,16 +1,8 @@
 {
     "suggestions": [
         {
-            "name": "Heading 1",
+            "name": "Heading",
             "syntax": "# H1"
-        },
-        {
-            "name": "Heading 2",
-            "syntax": "## H2"
-        },
-        {
-            "name": "Heading 3",
-            "syntax": "### H3"
         },
         {
             "name": "Bold",
@@ -37,7 +29,7 @@
             "syntax": "`code`"
         },
         {
-            "name": "Horizontal Rule",
+            "name": "Line",
             "syntax": "---"
         },
         {
@@ -46,7 +38,23 @@
         },
         {
             "name": "Image",
-            "syntax": "![alt text](image.jpg)"
+            "syntax": "![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Markdown-mark.svg/263px-Markdown-mark.svg.png)"
+        },
+        {
+            "name": "Diagram - Pie",
+            "syntax": "```mermaid\npie\n\"Good\":30\n\"Bad\":20\n\"OK\":100\n```"
+        },
+        {
+            "name": "Diagram - Flowchart",
+            "syntax": "```mermaid\nflowchart LR\nStart --> Stop\n```"
+        },
+        {
+            "name": "Diagram - Sequence",
+            "syntax": "```mermaid\nsequenceDiagram\nAlice->>John: Hello John, how are you?\nJohn-->>Alice: Great!\nAlice-)John: See you later!\n```"
+        },
+        {
+            "name": "Graph",
+            "syntax": "```DOT\nHello->World\n```"
         }
     ]
 }

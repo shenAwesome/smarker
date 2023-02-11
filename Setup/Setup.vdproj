@@ -87,6 +87,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_1A9FACB85E654D3BA88002526709DBB7"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_1D35549253F085290E27E749A1AC4E87"
         "OwnerKey" = "8:_DD53BBD0A1E54B8894BF637951834D1C"
         "MsmSig" = "8:_UNDEFINED"
@@ -1588,6 +1594,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
     }
@@ -1988,6 +2002,26 @@
             "Register" = "3:1"
             "Exclude" = "11:FALSE"
             "IsDependency" = "11:TRUE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_1A9FACB85E654D3BA88002526709DBB7"
+            {
+            "SourcePath" = "8:..\\mdFile.ico"
+            "TargetName" = "8:mdFile.ico"
+            "Tag" = "8:"
+            "Folder" = "8:_211C67E854A44F5089E9ACF8286049C1"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_1D35549253F085290E27E749A1AC4E87"
@@ -5392,6 +5426,29 @@
         }
         "FileType"
         {
+            "{5EB83D71-FA18-4901-BE56-DE22E13CC478}:_35C3F045F0C243E085F058918894EF2F"
+            {
+            "Name" = "8:Markdown"
+            "Description" = "8:"
+            "Extensions" = "8:md"
+            "MIME" = "8:"
+            "Icon" = "8:_1A9FACB85E654D3BA88002526709DBB7"
+            "IconIndex" = "3:0"
+                "Command"
+                {
+                "Command" = "8:_DD53BBD0A1E54B8894BF637951834D1C"
+                }
+                "Verbs"
+                {
+                    "{95C0C507-CBF0-42B8-B119-07219E384A4A}:_9A95F09F47484E91BA842DF3DE3A0857"
+                    {
+                    "Command" = "8:&Open"
+                    "Verb" = "8:open"
+                    "Arguments" = "8:\"%1\""
+                    "Order" = "3:0"
+                    }
+                }
+            }
         }
         "Folder"
         {

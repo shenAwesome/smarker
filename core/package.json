@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node script/postbuild.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "alertifyjs": "^1.13.1",
     "cash-dom": "^8.1.2",
     "classnames": "^2.3.2",
+    "fs-extra": "^11.1.0",
     "github-markdown-css": "^5.1.0",
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.1",

@@ -9,12 +9,12 @@ using System.Windows.Forms;
 
 namespace SMarkdownReader {
     class CoreHandler : WebHandler {
+        public string[] Args = Environment.GetCommandLineArgs();
 
         public object Home() {
             var UserProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var ExecutablePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var UserName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
-            var Args = Environment.GetCommandLineArgs();
             var MachineName = Environment.MachineName;
             var OSVersion = Environment.OSVersion.ToString();
             var LocalIPs = Dns.GetHostAddresses(Dns.GetHostName()).Select(x => x.ToString());

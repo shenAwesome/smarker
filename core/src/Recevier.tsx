@@ -94,7 +94,8 @@ class Recevier {
     await this.request('CloseForm', [])
   }
 
-  async onEvent(evt: FormEvent) {
+  private onEvent(evt: FormEvent) {
+    //console.log('evt: ', evt)
     const listeners = this.listeners.filter(l => l.type == evt.type)
     for (const l of listeners) l.handle(evt)
   }

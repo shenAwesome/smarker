@@ -13,7 +13,7 @@ async function createEditor(container: HTMLElement,
     const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
     return svg
   })
-  context.addParser('dot', content => {
+  context.addParser('DOT', content => {
     content = content.trim()
     if (!(content.startsWith('digraph') || content.startsWith('graph'))) {
       const head = content.includes('->') ? 'digraph' : 'graph'

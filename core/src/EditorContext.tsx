@@ -237,6 +237,10 @@ class EditorContext {
     editor.setScrollTop(newTop)
   }
 
+  /**
+   * show selection also prepare position for scolling sync
+   * @param selected 
+   */
   update(selected: number) {
     const { viewerDiv, blocks, editor } = this
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
