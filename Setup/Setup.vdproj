@@ -1577,7 +1577,7 @@
         "DisplayName" = "8:Release"
         "IsDebugOnly" = "11:FALSE"
         "IsReleaseOnly" = "11:TRUE"
-        "OutputFilename" = "8:Release\\Setup.msi"
+        "OutputFilename" = "8:Release\\SetupMarker.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -5503,7 +5503,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Marker"
         "ProductCode" = "8:{BA2BD006-1935-4DEF-BB6B-51D4269F286A}"
-        "PackageCode" = "8:{0AB65172-EE17-4D9C-885A-2F39AFA313A2}"
+        "PackageCode" = "8:{65CD493B-626C-441C-8213-9D1EF20E5A76}"
         "UpgradeCode" = "8:{23C95315-DA0B-4694-9574-24B90755AD19}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -6038,7 +6038,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_DD53BBD0A1E54B8894BF637951834D1C"
             {
-            "SourcePath" = "8:..\\desktop\\obj\\Debug\\Marker.exe"
+            "SourcePath" = "8:..\\desktop\\obj\\Release\\Marker.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_211C67E854A44F5089E9ACF8286049C1"
