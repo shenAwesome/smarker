@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -37,8 +38,21 @@ namespace SMarkdownReader {
             return File.ReadAllText(path);
         }
 
-        public void WriteFile(string path, string content) {
-            File.WriteAllText(path, content);
+        public string WriteFile(string path, string content) {
+            if (path == "") {
+                SaveFileDialog saveFileDialog1 = new SaveFileDialog {
+                    Filter = "Markdown File|*.md",
+                    Title = "Save an Markdown File"
+                };
+                saveFileDialog1.ShowDialog();
+                path = saveFileDialog1.FileName;
+                Debug.WriteLine(path);
+            }
+            var noChange = File.Exists(path) && content == File.ReadAllText(path);
+            if ((path != "") && !noChange) {
+                File.WriteAllText(path, content);
+            }
+            return path;
         }
 
         public void Rename(string path, string newPath) {

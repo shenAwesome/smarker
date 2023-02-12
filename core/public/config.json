@@ -2,59 +2,83 @@
     "suggestions": [
         {
             "name": "Heading",
-            "syntax": "# H1"
+            "syntax": "# Title",
+            "documentation": "Add number signs (#) in front of a word or phrase. The number of number signs you use should correspond to the heading level."
         },
         {
             "name": "Bold",
-            "syntax": "**bold text**"
+            "syntax": "**bold text**",
+            "documentation": "Add two asterisks before and after a word or phrase."
         },
         {
             "name": "Italic",
-            "syntax": "*italicized text*"
+            "syntax": "*italicized text*",
+            "documentation": "Add one asterisk before and after a word or phrase."
         },
         {
             "name": "Blockquote",
-            "syntax": "> blockquote"
+            "syntax": "> blockquote",
+            "documentation": "Add a > in front of a paragraph."
         },
         {
             "name": "List (Ordered)",
-            "syntax": "1. First item\n1. Second item"
+            "syntax": "1. First item\n1. Second item",
+            "documentation": "Add numbers followed by periods in front of line items."
         },
         {
             "name": "List (Unordered)",
-            "syntax": "- First item\n- Second item"
+            "syntax": "- First item\n- Second item",
+            "documentation": "Add dashes (-) in front of line items."
         },
         {
             "name": "Code",
-            "syntax": "`code`"
+            "syntax": "`code`",
+            "documentation": "Code blocks are normally indented four spaces or one tab. When they’re in a list, indent them eight spaces or two tabs."
         },
         {
             "name": "Line",
-            "syntax": "---"
+            "syntax": "---",
+            "documentation": "To create a Line (horizontal rule), use three dashes (---)"
         },
         {
             "name": "Link",
-            "syntax": "[title](https://www.example.com)"
+            "syntax": "[title](https://www.example.com)",
+            "documentation": "To create a link, enclose the link text in brackets (e.g., [Duck Duck Go]) and then follow it immediately with the URL in parentheses (e.g., (https://duckduckgo.com))."
         },
         {
             "name": "Image",
-            "syntax": "![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Markdown-mark.svg/263px-Markdown-mark.svg.png)"
+            "syntax": "![](https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Markdown-mark.svg/263px-Markdown-mark.svg.png)",
+            "documentation": "To add an image, add an exclamation mark (!), followed by alt text in brackets, and the path or URL to the image asset in parentheses."
         },
         {
             "name": "Diagram - Pie",
-            "syntax": "```mermaid\npie\n\"Good\":30\n\"Bad\":20\n\"OK\":100\n```"
+            "syntax": "```mermaid\npie\n\"Good\":30\n\"Bad\":20\n\"OK\":100\n```",
+            "documentation": "-[Mermaid Pie Chart](https://mermaid.js.org/syntax/pie.html)"
         },
         {
             "name": "Diagram - Flowchart",
-            "syntax": "```mermaid\nflowchart LR\nStart --> Stop\n```"
+            "syntax": "```mermaid\nflowchart LR\nStart --> Stop\n```",
+            "documentation": "-[Mermaid Flowchart](https://mermaid.js.org/syntax/flowchart.html)"
         },
         {
             "name": "Diagram - Sequence",
-            "syntax": "```mermaid\nsequenceDiagram\nAlice->>John: Hello John, how are you?\nJohn-->>Alice: Great!\nAlice-)John: See you later!\n```"
+            "syntax": "```mermaid\nsequenceDiagram\nAlice->>John: Hello John, how are you?\nJohn-->>Alice: Great!\nAlice-)John: See you later!\n```",
+            "documentation": "-[Mermaid Sequence Diagram](https://mermaid.js.org/syntax/sequenceDiagram.html)"
         },
         {
-            "name": "Graph",
-            "syntax": "```DOT\nHello->World\n```"
+            "name": "DOT Graph",
+            "syntax": "```DOT\nHello->World\n```",
+            "documentation": "-[Graphviz DOT](https://graphviz.org/doc/info/lang.html)"
+        },
+        {
+            "name": "Code Blocks",
+            "syntax": "```\nline1\nline2\nline3\n```",
+            "documentation": "Use three backticks (```) on the lines before and after the code block"
+        },
+        {
+            "name": "Table",
+            "syntax": "| Syntax      | Description |\n| ----------- | ----------- |\n| Header      | Title       |\n| Paragraph   | Text        |",
+            "documentation": "To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column."
         }
     ]
 }

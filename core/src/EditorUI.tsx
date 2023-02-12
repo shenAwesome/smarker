@@ -18,8 +18,6 @@ function useRefresh() {
   return () => setNum(Date.now)
 }
 
-
-
 function useStorage<T extends Object>(key: string, defaultValue: T) {
   const refresh = useRefresh()
   const saved = localStorage.getItem(key)

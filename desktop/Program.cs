@@ -22,10 +22,10 @@ namespace SMarkdownReader {
             var indexPage = "file://" + Path.Combine(Path.GetDirectoryName(
                 Assembly.GetExecutingAssembly().Location), "content/index.html");
 
-            if (coreHandler.Args.Length != 2) {
-                coreHandler.Args = new string[] { "", @"D:\temp\test.md" };
+            if (coreHandler.Args[0].Contains(@"bin\Debug")) {
+                //coreHandler.Args = new string[] { "", @"D:\temp\test.md" }; 
                 isDebug = true;
-                indexPage = "http://localhost:4000/";
+                //indexPage = "http://localhost:4000/";
             }
 
             string appName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);

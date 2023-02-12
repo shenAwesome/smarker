@@ -132,11 +132,17 @@ class EditorContext {
   private createSuggestions(range: monaco.IRange) {
     const kind = monaco.languages.CompletionItemKind.Function
     return this.config.suggestions.map(s => {
-      return {
-        label: s.name,
-        insertText: s.syntax,
-        kind, range, documentation: s.documentation
+      let { name: label, syntax: insertText, documentation } = s
+      if (documentation && documentation.startsWith('-')) {
+        const markdown: monaco.IMarkdownString = {
+          value: documentation.substring(1)
+        }
+        documentation = markdown as any
       }
+      return {
+        label, insertText, documentation,
+        kind, range
+      } as monaco.languages.CompletionItem
     })
   }
 
@@ -161,6 +167,19 @@ class EditorContext {
       glyphMargin: false, smoothScrolling: false, automaticLayout: true,
       theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
       language: "markdown"
+    }, {
+      storageService: {
+        get() { },
+        getBoolean(key: string) {
+          if (key === "expandSuggestionDocs") return true
+          return false
+        },
+        remove() { },
+        store() { },
+        onWillSaveState() { },
+        onDidChangeStorage() { },
+        onDidChangeValue() { }
+      }
     })
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
