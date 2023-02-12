@@ -109,6 +109,8 @@ function EditorUI({ code, context }: EditorProps) {
       $(ele).attr('x-block', blocks.length.toString())
       blocks.addBlock($(ele).attr('x-src'))
     })
+
+    if ((!config.showEditor) && (text.trim() == '')) setConfig({ showEditor: true })
   }, [text])
 
 
