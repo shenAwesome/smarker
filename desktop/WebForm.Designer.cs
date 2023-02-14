@@ -1,4 +1,4 @@
-﻿namespace SMarkdownReader {
+﻿namespace SMarker {
     partial class WebForm {
         /// <summary>
         /// Required designer variable.

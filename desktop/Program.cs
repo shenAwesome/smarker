@@ -5,7 +5,7 @@ using System.Threading;
 using System.Windows.Forms;
 using XDMessaging;
 
-namespace SMarkdownReader {
+namespace SMarker {
     internal static class Program {
         private static Mutex mutex = null;
         /// <summary>

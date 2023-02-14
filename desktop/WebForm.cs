@@ -8,7 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace SMarkdownReader {
+namespace SMarker {
 
     public partial class WebForm : Form {
 

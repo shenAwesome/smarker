@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{24AAC628-ADF6-429B-ACF7-AF15C0A02DB8}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>SMarkdownReader</RootNamespace>
+    <RootNamespace>SMarker</RootNamespace>
     <AssemblyName>SMarker</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>

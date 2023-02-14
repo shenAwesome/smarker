@@ -8,7 +8,7 @@ using System.Net;
 using System.Reflection;
 using System.Windows.Forms;
 
-namespace SMarkdownReader {
+namespace SMarker {
     class CoreHandler : WebHandler {
         public string[] Args = Environment.GetCommandLineArgs();
 

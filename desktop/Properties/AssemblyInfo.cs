@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SMarkdownReader")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("SMarker")]
+[assembly: AssemblyDescription("A Simple Markdown Viewer and Editor")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("SMarkdownReader")]
+[assembly: AssemblyCompany("ASLab")]
+[assembly: AssemblyProduct("SMarker")]
 [assembly: AssemblyCopyright("Copyright ©  2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
