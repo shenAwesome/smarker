@@ -13,7 +13,6 @@ function sleep(timeout: number) {
 interface FormEvent {
   type: string
   payload: any
-  cancel: boolean
 }
 
 const webview = (window as any)?.chrome?.webview
@@ -24,7 +23,7 @@ if (webview) webview.addEventListener('message', (evt: any) => {
 })
 
 class Recevier {
-
+  private listeners = [] as Listener[]
   private timeout = 5 //sec
   private pool = [] as Request[]
 
@@ -42,10 +41,14 @@ class Recevier {
     const fireFormEvent = (evtJSON: string) => {
       const evt = JSON.parse(evtJSON) as FormEvent
       this.onEvent(evt)
-      return (evt.cancel == true)
     }
 
     Object.assign(window, { fireFormEvent, onWebViewMessage })
+
+    this.addListener('FormClosing', async () => {
+      const ret = this._onClose ? await this._onClose() : true
+      if (ret) this.closeForm()
+    })
   }
 
   private async request(method: string, parameters: string[] = []) {
@@ -58,15 +61,21 @@ class Recevier {
     while (true) {
       await sleep(200)
       if (request.payload) break
-      if (Date.now() - start > this.timeout * 1000) break
+      if (Date.now() - start > this.timeout * 1000) {
+        request.error = 'timeout'
+        break
+      }
     }
     _.pull(pool, request)
     if (request.error) {
       console.error(request.error)
     }
     const payload = (request.payload + "").replaceAll(`\\\\`, '/')
-    //console.log('payload: ', payload, JSON.parse(payload))
-    return (payload == '-Null-') ? null : JSON.parse(payload)
+    var ret = null
+    if (payload != '-Null-') try {
+      ret = JSON.parse(payload)
+    } catch (e) { }
+    return ret
   }
 
   async home() {
@@ -88,13 +97,15 @@ class Recevier {
   }
 
   async writeFile(path: string, content: string) {
-    path = await this.request('WriteFile', [path, content]) as string
-    console.log('path: ', path)
-    return path
+    return await this.request('WriteFile', [path, content]) as string
   }
 
   async closeForm() {
     await this.request('CloseForm', [])
+  }
+
+  async setTitle(title: string) {
+    this.request('SetTitle', [title])
   }
 
   private onEvent(evt: FormEvent) {
@@ -102,22 +113,17 @@ class Recevier {
     for (const l of listeners) l.handle(evt)
   }
 
-  private listeners = [] as Listener[]
-  addListener(type: string, handle: EventHandle) {
+  public addListener(type: string, handle: EventHandle) {
     this.listeners.push(new Listener(type, handle))
   }
 
-  async setTitle(title: string) {
-    this.request('SetTitle', [title])
-  }
-
-  onClose(onClose: () => Promise<boolean>) {
-    this.addListener('FormClosing', async () => {
-      const ret = await onClose()
-      if (ret) this.closeForm()
-    })
+  _onClose: OnClose = null;
+  onClose(onClose: OnClose) {
+    this._onClose = onClose
   }
 }
+
+type OnClose = () => Promise<boolean>
 
 type EventHandle = (evt: FormEvent) => void
 class Listener {

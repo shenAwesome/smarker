@@ -8,6 +8,7 @@ import { Recevier } from './Recevier'
 async function main() {
   const receiver = new Recevier
   const container = document.getElementById('root')
+  document.addEventListener('contextmenu', evt => evt.preventDefault())
   const home = await receiver.home()
   if (home) {
     console.log('ret: ', home)
@@ -34,7 +35,7 @@ async function main() {
       await save()//save current content
       location.reload()//reload whole page 
     })
-  } else {//testing in browser
+  } else {//for testing in browser
     await createEditor(container, "helloWorld")
   }
 }

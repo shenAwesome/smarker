@@ -7,6 +7,7 @@ function copy(from, to) {
     const srcDir = path.join(home, from)
     const destDir = path.join(home, to)
     try {
+        fse.emptyDirSync(destDir)
         fse.copySync(srcDir, destDir, { overwrite: true })
         console.log('success!')
     } catch (err) {
@@ -15,4 +16,4 @@ function copy(from, to) {
 }
 
 copy('./dist', './../desktop/content')
-copy('./dist', './../desktop/bin/Debug/content')
+//copy('./dist', './../desktop/bin/Debug/content')
