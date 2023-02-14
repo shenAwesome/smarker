@@ -2,4 +2,7 @@ set msbuild="C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBui
 
 cd /D "%~dp0" 
 
+call ./core/build.bat
+
+cd /D "%~dp0" 
 %msbuild% smarker.sln
