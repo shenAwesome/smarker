@@ -90,27 +90,9 @@ function EditorUI({ code, context }: EditorProps) {
   }, [])
 
   useEffect(() => {//on text changed
-    const { viewerDiv, editor, mdEngine } = context
-
-    const view = $(viewerDiv)
-    view.html(mdEngine.render(text))
-
-    const simplified = context.pool.simplify(text)
-
-    if (editor.getModel().getValue() != simplified) {
-      const position = editor.getPosition()
-      editor.getModel().setValue(simplified)
-      editor.setPosition(position)
-      editor.focus()
-    }
-
-    blocks.clear()
-    view.find('[x-src]').each((_idx, ele) => {
-      $(ele).attr('x-block', blocks.length.toString())
-      blocks.addBlock($(ele).attr('x-src'))
-    })
-
+    context.setCode(text)
     if ((!config.showEditor) && (text.trim() == '')) setConfig({ showEditor: true })
+    //set table of context
   }, [text])
 
 
@@ -135,9 +117,11 @@ function EditorUI({ code, context }: EditorProps) {
     }
   }
 
+  const _selected = showEditor ? selected : -1
+
   useEffect(() => {
-    context.update(showEditor ? selected : -1)
-  })
+    context.select(_selected)
+  }, [_selected])
 
   function onContextMenu(event: React.MouseEvent) {
     show({ event })

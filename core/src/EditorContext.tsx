@@ -119,7 +119,7 @@ class EditorContext {
   viewerDiv: HTMLDivElement
 
   constructor() {
-    this.update = _.debounce(this.update, 100)
+    this.select = _.debounce(this.select, 100)
     const { mdEngine } = this
     mdEngine.use(InjectLineNumber)
     mdEngine.use(markdownContainer, 'warning')
@@ -256,15 +256,25 @@ class EditorContext {
     editor.setScrollTop(newTop)
   }
 
-  /**
-   * show selection also prepare position for scolling sync
-   * @param selected 
-   */
-  update(selected: number) {
-    const { viewerDiv, blocks, editor } = this
-    $(viewerDiv).find(`[x-block]`).removeClass('selected')
-    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
-    blocks.highlight(selected)
+  setCode(code: string) {
+    const { viewerDiv, editor, mdEngine, blocks } = this
+
+    const view = $(viewerDiv)
+    view.html(mdEngine.render(code))
+
+    const simplified = this.pool.simplify(code)
+
+    if (editor.getModel().getValue() != simplified) {
+      const position = editor.getPosition()
+      editor.getModel().setValue(simplified)
+      editor.setPosition(position)
+      editor.focus()
+    }
+    blocks.clear()
+    view.find('[x-src]').each((_idx, ele) => {
+      $(ele).attr('x-block', blocks.length.toString())
+      blocks.addBlock($(ele).attr('x-src'))
+    })
     //update block position for scrolling
     const viewTop = viewerDiv.getBoundingClientRect().top
     blocks.blocks.forEach(b => {
@@ -272,6 +282,17 @@ class EditorContext {
       b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
         .getBoundingClientRect().top - viewTop
     })
+  }
+
+  /**
+   * show selection also prepare position for scolling sync
+   * @param selected 
+   */
+  select(selected: number) {
+    const { viewerDiv, blocks } = this
+    $(viewerDiv).find(`[x-block]`).removeClass('selected')
+    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
+    blocks.highlight(selected)
   }
 
   async save() {
