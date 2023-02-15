@@ -6,11 +6,13 @@ import { createEditor } from './Editor'
 import { Recevier } from './Recevier'
 
 async function main() {
-  const receiver = new Recevier
+
   const container = document.getElementById('root')
   document.addEventListener('contextmenu', evt => evt.preventDefault())
-  const home = await receiver.home()
-  if (home) {
+
+  const receiver = new Recevier
+  if (receiver.isConnected) { //inside webview2
+    const home = await receiver.home()
     console.log('ret: ', home)
     let filePath = home.Args[1] || ''
     console.log('filePath: ', filePath)
@@ -35,7 +37,8 @@ async function main() {
       await save()//save current content
       location.reload()//reload whole page 
     })
-  } else {//for testing in browser
+
+  } else {//inside web browser, for testing
     await createEditor(container, "helloWorld")
   }
 }

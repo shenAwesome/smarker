@@ -24,26 +24,19 @@ if (webview) webview.addEventListener('message', (evt: any) => {
 
 class Recevier {
   private listeners = [] as Listener[]
-  private timeout = 5 //sec
-  private pool = [] as Request[]
+
+  core: any
 
   constructor() {
     if (!webview) return
-    const { pool } = this
-
-    const onWebViewMessage = (evt: any) => {
-      if (evt.data?._type_ == 'Request') {
-        const request = evt.data as Request
-        pool.find(p => p.id == request.id).payload = request.payload || '-Null-'
-      }
-    }
+    this.core = webview.hostObjects.Core
 
     const fireFormEvent = (evtJSON: string) => {
       const evt = JSON.parse(evtJSON) as FormEvent
       this.onEvent(evt)
     }
 
-    Object.assign(window, { fireFormEvent, onWebViewMessage })
+    Object.assign(window, { fireFormEvent })
 
     this.addListener('FormClosing', async () => {
       const ret = this._onClose ? await this._onClose() : true
@@ -51,35 +44,25 @@ class Recevier {
     })
   }
 
-  private async request(method: string, parameters: string[] = []) {
-    const { pool } = this
-    if (!webview) return
-    const request = new Request(method, parameters)
-    pool.push(request)
-    webview.postMessage(request)
-    const start = Date.now()
-    while (true) {
-      await sleep(200)
-      if (request.payload) break
-      if (Date.now() - start > this.timeout * 1000) {
-        request.error = 'timeout'
-        break
-      }
-    }
-    _.pull(pool, request)
-    if (request.error) {
-      console.error(request.error)
-    }
-    const payload = (request.payload + "").replaceAll(`\\\\`, '/')
-    var ret = null
-    if (payload != '-Null-') try {
-      ret = JSON.parse(payload)
-    } catch (e) { }
-    return ret
+  get isConnected() {
+    return (!!this.core)
+  }
+
+  public addListener(type: string, handle: EventHandle) {
+    this.listeners.push(new Listener(type, handle))
+  }
+  _onClose: OnClose = null;
+  onClose(onClose: OnClose) {
+    this._onClose = onClose
+  }
+
+  private onEvent(evt: FormEvent) {
+    const listeners = this.listeners.filter(l => l.type == evt.type)
+    for (const l of listeners) l.handle(evt)
   }
 
   async home() {
-    const ret = await this.request('Home', []) as {
+    return JSON.parse(await this.core.Home()) as {
       Args: string[],
       Culture: string,
       ExecutablePath: string,
@@ -89,38 +72,24 @@ class Recevier {
       UserName: string,
       UserProfile: string
     }
-    return ret
   }
 
   async readFile(path: string) {
-    return await this.request('ReadFile', [path]) as string
+    return await this.core.ReadFile(path) as string
   }
 
   async writeFile(path: string, content: string) {
-    return await this.request('WriteFile', [path, content]) as string
+    return await this.core.WriteFile(path, content) as string
   }
 
   async closeForm() {
-    await this.request('CloseForm', [])
+    await this.core.CloseForm()
   }
 
   async setTitle(title: string) {
-    this.request('SetTitle', [title])
+    await this.core.SetTitle(title)
   }
 
-  private onEvent(evt: FormEvent) {
-    const listeners = this.listeners.filter(l => l.type == evt.type)
-    for (const l of listeners) l.handle(evt)
-  }
-
-  public addListener(type: string, handle: EventHandle) {
-    this.listeners.push(new Listener(type, handle))
-  }
-
-  _onClose: OnClose = null;
-  onClose(onClose: OnClose) {
-    this._onClose = onClose
-  }
 }
 
 type OnClose = () => Promise<boolean>
@@ -128,17 +97,6 @@ type OnClose = () => Promise<boolean>
 type EventHandle = (evt: FormEvent) => void
 class Listener {
   constructor(public type: string, public handle: EventHandle) { }
-}
-
-
-class Request {
-  public _type_ = "Request";
-  public id: string
-  public payload: string
-  public error: string
-  constructor(public method: string, public parameters: string[]) {
-    this.id = Math.random() + '_' + Date.now()
-  }
 }
 
 export { Recevier }

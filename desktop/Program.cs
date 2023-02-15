@@ -16,16 +16,16 @@ namespace SMarker {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var coreHandler = new CoreHandler();
+            var service = new CoreService();
 
             var isDebug = false;
             var indexPage = "file://" + Path.Combine(Path.GetDirectoryName(
                 Assembly.GetExecutingAssembly().Location), "content/index.html");
 
-            if (coreHandler.Args[0].Contains(@"bin\Debug")) {
+            if (service.Args[0].Contains(@"bin\Debug")) {
                 //coreHandler.Args = new string[] { "", @"D:\temp\test.md" }; 
                 isDebug = true;
-                //indexPage = "http://localhost:4000/";
+                indexPage = "http://localhost:4000/";
             }
 
             string appName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
@@ -41,8 +41,8 @@ namespace SMarker {
                         var msg = e.DataGram.Message;
                         if (msg.StartsWith("Reload:")) {
                             var path = msg.Replace("Reload:", "").Replace("\\", "/");
-                            coreHandler.Args[1] = path;
-                            coreHandler.FireEvent("Reload");
+                            service.Args[1] = path;
+                            service.FireEvent("Reload");
                         }
                     }
                 };
@@ -50,10 +50,11 @@ namespace SMarker {
                     isDebug = isDebug,
                     IndexPage = indexPage
                 };
-                form.AddHandler(coreHandler);
+
+                form.AddService("Core", service);
                 Application.Run(form);
             } else {
-                var path = coreHandler.Args[1];
+                var path = service.Args[1];
                 IXDBroadcaster broadcaster = client.Broadcasters
                     .GetBroadcasterForMode(XDTransportMode.HighPerformanceUI);
                 broadcaster.SendToChannel(channel, "Reload:" + path);

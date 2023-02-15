@@ -6,13 +6,32 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace SMarker {
-    class CoreHandler : WebHandler {
-        public string[] Args = Environment.GetCommandLineArgs();
 
-        public object Home() {
+
+    [ClassInterface(ClassInterfaceType.AutoDual)]
+    [ComVisible(true)]
+    public class CoreService : Service {
+
+        public string[] Args = Environment.GetCommandLineArgs();
+        public override void Init() {
+            form.FormClosing += (object sender, FormClosingEventArgs e) => {
+                if (!closeConfirmed) {
+                    e.Cancel = true;
+                    FireEvent("FormClosing");
+                }
+            };
+        }
+        bool closeConfirmed = false;
+
+        public string Test() {
+            return "hello";
+        }
+
+        public string Home() {
             var UserProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var ExecutablePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var UserName = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
@@ -20,10 +39,10 @@ namespace SMarker {
             var OSVersion = Environment.OSVersion.ToString();
             var LocalIPs = Dns.GetHostAddresses(Dns.GetHostName()).Select(x => x.ToString());
             var Culture = CultureInfo.CurrentUICulture.Name;
-            return new {
+            return JsonConvert.SerializeObject(new {
                 UserProfile, ExecutablePath, Args, UserName,
                 MachineName, OSVersion, LocalIPs, Culture
-            };
+            });
         }
 
         public string[] GetFiles(string path) {
@@ -82,31 +101,5 @@ namespace SMarker {
             closeConfirmed = true;
             form.Close();
         }
-
-
-        public override void HandleRequest(Request request) {
-            var method = typeof(CoreHandler).GetMethod(request.method);
-            if (method != null) {
-                try {
-                    var ret = method.Invoke(this, request.parameters);
-                    request.payload = JsonConvert.SerializeObject(ret);
-                } catch (Exception e) {
-                    request.error = e.Message;
-                }
-            } else {
-                request.error = "Missing Method";
-            }
-        }
-
-        public override void Init() {
-            form.FormClosing += (object sender, FormClosingEventArgs e) => {
-                if (!closeConfirmed) {
-                    e.Cancel = true;
-                    FireEvent("FormClosing");
-                }
-            };
-        }
-
-        bool closeConfirmed = false;
     }
 }

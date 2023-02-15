@@ -81,7 +81,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CoreHandler.cs" />
+    <Compile Include="CoreService.cs" />
     <Compile Include="WebForm.cs">
       <SubType>Form</SubType>
     </Compile>

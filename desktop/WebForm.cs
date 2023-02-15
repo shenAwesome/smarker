@@ -5,18 +5,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SMarker {
 
     public partial class WebForm : Form {
-
-        private readonly List<WebHandler> handlers = new List<WebHandler>();
-
-        public void AddHandler(WebHandler handler) {
-            handlers.Add(handler);
-        }
 
         public WebForm() {
             InitializeComponent();
@@ -24,11 +17,6 @@ namespace SMarker {
             StartPosition = FormStartPosition.CenterScreen;
             Opacity = 0;
             //Icon = new Icon("abc");
-        }
-
-        private void fireEvent(object sender, FormEvent e) {
-            View.PostWebMessageAsJson(JsonConvert.SerializeObject(e));
-
         }
 
         private CoreWebView2 View {
@@ -46,12 +34,6 @@ namespace SMarker {
                 ev.Handled = true;
                 def.Complete();
             };
-            foreach (var handler in handlers) {
-                handler.form = this;
-                handler.view = View;
-                handler.Init();
-            }
-
             View.Settings.AreBrowserAcceleratorKeysEnabled = false;
             View.Settings.IsPasswordAutosaveEnabled = false;
             if (isDebug) View.OpenDevToolsWindow();
@@ -70,6 +52,11 @@ namespace SMarker {
             InitializeAsync();
         }
 
+        private Dictionary<string, Service> services = new Dictionary<string, Service>();
+        internal void AddService(string name, Service serviceObj) {
+            services.Add(name, serviceObj);
+        }
+
         public string IndexPage;
 
         async void InitializeAsync() {
@@ -81,35 +68,27 @@ namespace SMarker {
             await webView21.EnsureCoreWebView2Async(environment);
 
             View.DOMContentLoaded += View_DOMContentLoaded;
-            View.WebMessageReceived += View_WebMessageReceived;
-            View.Navigate(IndexPage);
-        }
+            //View.WebMessageReceived += View_WebMessageReceived;
+            foreach (var entry in services) {
+                var service = entry.Value;
+                service.form = this;
+                service.view = View;
+                service.Init();
+                View.AddHostObjectToScript(entry.Key, service);
+            }
 
-        private void View_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args) {
-            var content = args.WebMessageAsJson;
-            var message = JsonConvert.DeserializeObject<Request>(content);
-            HandleRequest(message);
-            View?.PostWebMessageAsJson(JsonConvert.SerializeObject(message));
+            View.Navigate(IndexPage);
         }
 
         private void View_DOMContentLoaded(object sender, CoreWebView2DOMContentLoadedEventArgs e) {
             Debug.WriteLine("loaded");
         }
 
-        private void HandleRequest(Request request) {
-            handlers.ForEach(h => {
-                try {
-                    h.HandleRequest(request);
-                } catch (Exception e) {
-                    Debug.WriteLine(e.Message);
-                }
-            });
-        }
-
         public void RunUI(Action action) {
             Invoke(new MethodInvoker(action));
         }
     }
+
 
     public class FormLocation {
         public Size Size;
@@ -162,15 +141,6 @@ namespace SMarker {
         }
     }
 
-    public class Request {
-        public string _type_ = "Request";
-        public string id;
-        public string method;
-        public string[] parameters;
-        public string payload;
-        public string error;
-    }
-
     public class FormEvent {
         public string type;
         public object payload;
@@ -180,12 +150,11 @@ namespace SMarker {
         }
     }
 
-    public abstract class WebHandler {
+
+    public abstract class Service {
         public Form form;
         public CoreWebView2 view;
         public abstract void Init();
-        public abstract void HandleRequest(Request request);
-
 
         public void FireEvent(string name, object payload = null) {
             FireEvent(new FormEvent(name, payload));
