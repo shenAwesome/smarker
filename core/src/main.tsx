@@ -19,18 +19,18 @@ async function main() {
     const fileContent = filePath ? await receiver.readFile(filePath) : ''
 
     async function save() {
-      const content = editor.getCode()
-      filePath = await receiver.writeFile(filePath, content)
-      receiver.setTitle(filePath)
+      if (editor.hasChange()) {
+        const content = editor.getCode()
+        filePath = await receiver.writeFile(filePath, content)
+        receiver.setTitle(filePath)
+      }
     }
 
     const editor = await createEditor(container, fileContent, save)
     await receiver.setTitle(filePath)
 
     receiver.onClose(async () => {
-      if (editor.hasChange()) {
-        await save()
-      }
+      await save()
       return true
     })
     receiver.addListener("Reload", async (evt) => {
