@@ -16,7 +16,6 @@ namespace SMarker {
             webView21.CoreWebView2InitializationCompleted += WebViewInitialized;
             StartPosition = FormStartPosition.CenterScreen;
             Opacity = 0;
-            //Icon = new Icon("abc");
         }
 
         private CoreWebView2 View {
@@ -49,6 +48,7 @@ namespace SMarker {
         private void Form1_Load(object sender, EventArgs e) {
             var location = FormLocation.FromJSON(Properties.Settings.Default.FormLocation);
             location?.Write(this);
+            BringToTop();
             InitializeAsync();
         }
 
@@ -87,6 +87,31 @@ namespace SMarker {
         public void RunUI(Action action) {
             Invoke(new MethodInvoker(action));
         }
+
+        public void BringToTop() {
+            if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+            if (WindowState == FormWindowState.Normal) {
+                var workingArea = Screen.FromControl(this).WorkingArea;
+                var formBounds = new Rectangle(Location, Size);
+                if (!workingArea.Contains(formBounds)) {
+                    DoCenterToScreen();
+                }
+            }
+            bool top = TopMost;
+            TopMost = true;
+            TopMost = top;
+        }
+
+        private void DoCenterToScreen() {
+            Form form = this;
+            Rectangle workingArea = Screen.FromControl(form).WorkingArea;
+            form.Width = Math.Min(workingArea.Width, form.Width);
+            form.Height = Math.Min(workingArea.Height, form.Height);
+            form.Location = new Point() {
+                X = Math.Max(workingArea.X, workingArea.X + (workingArea.Width - form.Width) / 2),
+                Y = Math.Max(workingArea.Y, workingArea.Y + (workingArea.Height - form.Height) / 2)
+            };
+        }
     }
 
 
@@ -107,27 +132,10 @@ namespace SMarker {
             return this;
         }
 
-        void CenterToScreen(Form form) {
-            Rectangle workingArea = Screen.FromControl(form).WorkingArea;
-            form.Width = Math.Min(workingArea.Width, form.Width);
-            form.Height = Math.Min(workingArea.Height, form.Height);
-            form.Location = new Point() {
-                X = Math.Max(workingArea.X, workingArea.X + (workingArea.Width - form.Width) / 2),
-                Y = Math.Max(workingArea.Y, workingArea.Y + (workingArea.Height - form.Height) / 2)
-            };
-        }
-
         public FormLocation Write(Form form) {
             form.Location = Location;
             form.WindowState = WindowState;
             form.Size = Size;
-            if (WindowState == FormWindowState.Normal) {
-                var workingArea = Screen.FromControl(form).WorkingArea;
-                var formBounds = new Rectangle(form.Location, form.Size);
-                if (!workingArea.Contains(formBounds)) {
-                    CenterToScreen(form);
-                }
-            }
             return this;
         }
 

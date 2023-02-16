@@ -33,6 +33,11 @@ namespace SMarker {
             XDMessagingClient client = new XDMessagingClient();
             var channel = appName + "+commands";
             if (firstInstance) {
+                var form = new WebForm {
+                    isDebug = isDebug,
+                    IndexPage = indexPage
+                };
+
                 IXDListener listener = client.Listeners
                 .GetListenerForMode(XDTransportMode.HighPerformanceUI);
                 listener.RegisterChannel(channel);
@@ -40,21 +45,20 @@ namespace SMarker {
                     if (e.DataGram.Channel == channel) {
                         var msg = e.DataGram.Message;
                         if (msg.StartsWith("Reload:")) {
-                            var path = msg.Replace("Reload:", "").Replace("\\", "/");
-                            service.Args[1] = path;
-                            service.FireEvent("Reload");
+                            form.BringToTop();
+                            var path = msg.Replace("Reload:", "").Replace("\\", "/").Trim();
+                            if (path.Length > 0) {
+                                service.Args[1] = path;
+                                service.FireEvent("Reload");
+                            }
                         }
                     }
-                };
-                var form = new WebForm {
-                    isDebug = isDebug,
-                    IndexPage = indexPage
                 };
 
                 form.AddService("Core", service);
                 Application.Run(form);
             } else {
-                var path = service.Args[1];
+                var path = service.Args.Length == 2 ? service.Args[1] : "";
                 IXDBroadcaster broadcaster = client.Broadcasters
                     .GetBroadcasterForMode(XDTransportMode.HighPerformanceUI);
                 broadcaster.SendToChannel(channel, "Reload:" + path);
