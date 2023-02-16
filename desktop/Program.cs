@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
@@ -7,7 +9,7 @@ using XDMessaging;
 
 namespace SMarker {
     internal static class Program {
-        private static Mutex mutex = null;
+        // private static Mutex mutex = null;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -29,8 +31,16 @@ namespace SMarker {
             }
 
 
+
+            Process myProcess = Process.GetCurrentProcess();
+            var processExists = Process.GetProcesses().Any(
+                p => p.ProcessName.Equals(myProcess.ProcessName)
+                && p.Id != myProcess.Id);
+
             string appName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
-            mutex = new Mutex(true, appName, out bool firstInstance);
+            //mutex = new Mutex(true, appName, out bool firstInstance);
+            var firstInstance = !processExists;
+
             XDMessagingClient client = new XDMessagingClient();
             var channel = appName + "+commands";
             if (firstInstance) {

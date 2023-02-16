@@ -16,9 +16,15 @@ namespace SMarker {
     [ComVisible(true)]
     public class CoreService : Service {
 
-        public string[] Args = Environment.GetCommandLineArgs();
+        public string[] Args;
+
+        public CoreService() {
+            var args = Environment.GetCommandLineArgs();
+            if (args.Length == 1) args = new string[] { args[0], "" };
+            Args = args;
+        }
+
         public override void Init() {
-            if (Args.Length == 1) Args = new string[] { Args[0], "" };
             form.FormClosing += (object sender, FormClosingEventArgs e) => {
                 if (!closeConfirmed) {
                     e.Cancel = true;
