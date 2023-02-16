@@ -32,6 +32,7 @@ class Recevier {
     this.core = webview.hostObjects.Core
 
     const fireFormEvent = (evtJSON: string) => {
+      console.log(evtJSON)
       const evt = JSON.parse(evtJSON) as FormEvent
       this.onEvent(evt)
     }

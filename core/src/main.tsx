@@ -34,6 +34,7 @@ async function main() {
       return true
     })
     receiver.addListener("Reload", async (evt) => {
+      console.log('reload')
       await save()//save current content
       location.reload()//reload whole page 
     })

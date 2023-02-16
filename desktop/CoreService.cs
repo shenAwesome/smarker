@@ -18,6 +18,7 @@ namespace SMarker {
 
         public string[] Args = Environment.GetCommandLineArgs();
         public override void Init() {
+            if (Args.Length == 1) Args = new string[] { Args[0], "" };
             form.FormClosing += (object sender, FormClosingEventArgs e) => {
                 if (!closeConfirmed) {
                     e.Cancel = true;

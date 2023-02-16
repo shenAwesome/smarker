@@ -28,6 +28,7 @@ namespace SMarker {
                 indexPage = "http://localhost:4000/";
             }
 
+
             string appName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
             mutex = new Mutex(true, appName, out bool firstInstance);
             XDMessagingClient client = new XDMessagingClient();
@@ -58,7 +59,7 @@ namespace SMarker {
                 form.AddService("Core", service);
                 Application.Run(form);
             } else {
-                var path = service.Args.Length == 2 ? service.Args[1] : "";
+                var path = service.Args[1];
                 IXDBroadcaster broadcaster = client.Broadcasters
                     .GetBroadcasterForMode(XDTransportMode.HighPerformanceUI);
                 broadcaster.SendToChannel(channel, "Reload:" + path);
