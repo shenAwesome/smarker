@@ -87,7 +87,7 @@ class DataPool {
   }
   simplify(content: string) {
     const { pool } = this
-    const find = /\(data:image\/png;base64,.*\)/g
+    const find = /\(data:image\/jpeg;base64,.*\)/g
     let match: RegExpExecArray
     let index = 1
 
@@ -103,6 +103,21 @@ class DataPool {
     }
     return content
   }
+}
+
+function pngToJpg(dataURL: string) {
+  return new Promise<string>(resolve => {
+    var image = new Image()
+    image.onload = () => {
+      var canvas = document.createElement("canvas")
+      canvas.width = image.width
+      canvas.height = image.height
+      canvas.getContext("2d").drawImage(image, 0, 0)
+      dataURL = canvas.toDataURL("image/jpeg", .75)
+      resolve(dataURL)
+    }
+    image.src = dataURL
+  })
 }
 
 type OnSave = (content: string) => Promise<void>
@@ -210,7 +225,10 @@ class EditorContext {
         for (const clipboardItem of clipboardItems) {
           for (const type of clipboardItem.types) {
             if (type == 'image/png') {
-              const base64 = await blobToBase64(await clipboardItem.getType(type))
+              let base64 = await blobToBase64(await clipboardItem.getType(type))
+              console.log('png: ', base64.length)
+              base64 = await pngToJpg(base64)
+              console.log('jpeg: ', base64.length)
               imageText = `![Image](${this.pool.cache(base64)})`
             }
           }
