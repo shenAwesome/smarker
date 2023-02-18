@@ -72,32 +72,41 @@ class Blocks {
 
 class DataPool {
   pool = {} as { [key: string]: string }
+
   cache(val: string) {
-    const { pool } = this,
-      index = Object.keys(pool).length + 1,
-      key = `--data:image/${index}--`
-    Object.assign(pool, { [key]: val })
+    //console.log(Object.keys(this.pool))
+    const { pool } = this
+    let key = Object.keys(pool).find(k => pool[k] == val)
+    if (!key) {
+      const genKey = (index: number) => `--data:image/${index}--`
+      let index = 1
+      while (Object.keys(pool).includes(genKey(index))) {
+        index++
+      }
+      key = genKey(index)
+      Object.assign(pool, { [key]: val })
+    }
     return key
   }
+
   patch(content: string) {
     for (const [key, value] of Object.entries(this.pool)) {
       content = content.replaceAll(key, value)
     }
     return content
   }
+
   simplify(content: string) {
-    const { pool } = this
-    const find = /\(data:image\/jpeg;base64,.*\)/g
+    //console.log('simplify ', content)
+    //auto caching
+    const find = /\(data:image\/(jpeg|png);base64,.*\)/g
     let match: RegExpExecArray
-    let index = 1
-
     while ((match = find.exec(content)) !== null) {
-      const key = `(--data:image/${index}--)`
-      const val = match[0]
-      Object.assign(pool, { [key]: val })
-      index++
+      const matchStr = match[0]
+      const val = matchStr.substring(1, matchStr.length - 1)
+      this.cache(val)
     }
-
+    //replace long str with short
     for (const [key, value] of Object.entries(this.pool)) {
       content = content.replaceAll(value, key)
     }
@@ -225,11 +234,13 @@ class EditorContext {
         for (const clipboardItem of clipboardItems) {
           for (const type of clipboardItem.types) {
             if (type == 'image/png') {
-              let base64 = await blobToBase64(await clipboardItem.getType(type))
-              console.log('png: ', base64.length)
-              base64 = await pngToJpg(base64)
-              console.log('jpeg: ', base64.length)
+              const base64_png = await blobToBase64(await clipboardItem.getType(type))
+              const base64_jpeg = await pngToJpg(base64_png)
+              const ratio = base64_jpeg.length / base64_png.length
+              console.log('jpeg ratio: ', ratio.toFixed(2))
+              const base64 = ratio > 1 ? base64_png : base64_jpeg
               imageText = `![Image](${this.pool.cache(base64)})`
+              //console.log('imageText: ', imageText)
             }
           }
         }
