@@ -77,8 +77,18 @@
         },
         {
             "name": "Table",
-            "syntax": "| Syntax      | Description |\n| ----------- | ----------- |\n| Header      | Title       |\n| Paragraph   | Text        |",
+            "syntax": "| header1 | header2 |\n| --- | --- |\n| cell1 | cell2 |\n| cell3 | cell4 |",
             "documentation": "To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column."
+        },
+        {
+            "name": "Strikethrough",
+            "syntax": "~~Strikethrough~~",
+            "documentation": "Add ~~ before and after a word or phrase."
+        },
+        {
+            "name": "Task List",
+            "syntax": "- [x] task2\n- [x] task2\n- [ ] task3",
+            "documentation": "preface list items with a hyphen and space followed by [ ]. To mark a task as complete, use [x]."
         }
     ]
 }

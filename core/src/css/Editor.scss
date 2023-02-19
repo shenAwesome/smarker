@@ -116,6 +116,48 @@ body {
   img {
     pointer-events: none;
   }
+
+  .contains-task-list {
+    padding: .1em .5em .5em;
+  }
+
+  .task-list-item {
+    line-height: 1.1;
+    display: grid;
+    grid-template-columns: 1em auto;
+    gap: 0.5em;
+    margin-top: .5em !important;
+
+    input[type="checkbox"] {
+
+      appearance: none;
+      background-color: #fff;
+      margin: 0;
+      font: inherit;
+      color: currentColor;
+      width: 1.15em;
+      height: 1.15em;
+      border: 0.15em solid currentColor;
+      border-radius: 0.15em;
+      transform: translateY(-0.075em);
+      display: grid;
+      place-content: center;
+      position: relative;
+      top: 1.5px;
+    }
+
+    input[type="checkbox"]::before {
+      content: "";
+      width: 0.65em;
+      height: 0.65em;
+      transform: scale(0);
+      box-shadow: inset 1em 1em black;
+    }
+
+    input[type="checkbox"]:checked::before {
+      transform: scale(1);
+    }
+  }
 }
 
 ::-webkit-scrollbar {

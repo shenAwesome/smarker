@@ -4,11 +4,37 @@ import 'github-markdown-css'
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
 import markdownContainer from 'markdown-it-container'
+import markdownTaskLists from 'markdown-it-task-lists'
+
 import * as monaco from 'monaco-editor'
 import 'react-contexify/ReactContexify.css'
 import './css/Editor.scss'
 import './manaco/userWorker'
 import { addParser, Handle, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
+
+
+import * as _actions from "monaco-editor/esm/vs/platform/actions/common/actions"
+import { StandaloneServices } from "monaco-editor/esm/vs/editor/standalone/browser/standaloneServices"
+import { createDecorator } from 'monaco-editor/esm//vs/platform/instantiation/common/instantiation'
+
+//console.log('actions: ', actions)
+
+function deleteAction(ids: string[]) {
+  const menus = _actions.MenuRegistry._menuItems as Map<any, any>
+  const contextMenuEntry = Array.from(menus, ([key, value]) => ({ key, value }))
+    .find(entry => entry.key.id == 'EditorContext')
+  const list = contextMenuEntry.value
+  const removeById = (list: any, ids: string[]) => {
+    let node = list._first
+    do {
+      let shouldRemove = ids.includes(node.element?.command?.id)
+      if (shouldRemove) list._remove(node)
+    } while ((node = node.next))
+  }
+  removeById(list, ids)
+  //console.log(list)
+}
+
 
 class Block {
   index = -1
@@ -147,6 +173,7 @@ class EditorContext {
     const { mdEngine } = this
     mdEngine.use(InjectLineNumber)
     mdEngine.use(markdownContainer, 'warning')
+    mdEngine.use(markdownTaskLists)
   }
 
   addParser(language: string, handle: Handle) {
@@ -185,26 +212,17 @@ class EditorContext {
   }
 
   init() {
+
     this.blocks.context = this
-    this.editor = monaco.editor.create(this.editorDiv, {
+    const editor = this.editor = monaco.editor.create(this.editorDiv, {
       fontSize: 20, wordWrap: 'on',
       glyphMargin: false, smoothScrolling: false, automaticLayout: true,
       theme: 'vs-dark', lineNumbersMinChars: 3, minimap: { enabled: false },
       language: "markdown"
-    }, {
-      storageService: {
-        get() { },
-        getBoolean(key: string) {
-          if (key === "expandSuggestionDocs") return true
-          return false
-        },
-        remove() { },
-        store() { },
-        onWillSaveState() { },
-        onDidChangeStorage() { },
-        onDidChangeValue() { }
-      }
-    })
+    }, {})
+
+    editor.onDidScrollChange(() => this.onEditorScroll())
+
     monaco.languages.registerCompletionItemProvider("markdown", {
       provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
         const word = model.getWordUntilPosition(position)
@@ -222,9 +240,6 @@ class EditorContext {
     })
     parserList.forEach(p => {
       monaco.languages.register({ id: p.language })
-    })
-    this.editor.onDidScrollChange(() => {
-      this.onEditorScroll()
     })
 
     document.addEventListener('keydown', async evt => {
@@ -245,7 +260,6 @@ class EditorContext {
           }
         }
         if (imageText) {
-          const { editor } = this
           editor.trigger("source", "undo", null)
           navigator.clipboard.writeText(imageText)
           editor.trigger('source', 'editor.action.clipboardPasteAction', null)
@@ -258,7 +272,18 @@ class EditorContext {
       }
     })
     document.addEventListener('mousemove', onMouseMove)
-    return this.editor
+
+    //remove command palette from menu
+    deleteAction(['editor.action.quickCommand'])
+    //alwasy expandSuggestion 
+    const storageService = StandaloneServices.get(createDecorator('storageService'))
+    const { getBoolean } = storageService
+    storageService.getBoolean = (key: string) => {
+      if (key === 'expandSuggestionDocs') return true
+      return getBoolean.call(storageService, key)
+    }
+
+    return editor
   }
 
   savedContent = "";

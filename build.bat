@@ -5,4 +5,4 @@ cd /D "%~dp0"
 call ./core/build.bat
 
 cd /D "%~dp0" 
-%msbuild% smarker.sln
+rem %msbuild% smarker.sln
