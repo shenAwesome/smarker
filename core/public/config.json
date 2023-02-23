@@ -1,4 +1,45 @@
 {
+    "enhancements": [
+        {
+            "name": "Bold",
+            "key": "B",
+            "syntax": "**{0}**"
+        },
+        {
+            "name": "Italic",
+            "key": "I",
+            "syntax": "*{0}*"
+        },
+        {
+            "name": "Strikethrough",
+            "key": "D",
+            "syntax": "~~{0}~~"
+        },
+        {
+            "name": "Heading",
+            "key": "H",
+            "syntax": "# {0}",
+            "multiline": true
+        },
+        {
+            "name": "Quote",
+            "key": "Q",
+            "syntax": "> {0}",
+            "multiline": true
+        },
+        {
+            "name": "List",
+            "key": "L",
+            "syntax": "1. {0}",
+            "multiline": true
+        },
+        {
+            "name": "Ordered List",
+            "key": "O",
+            "syntax": "- {0}",
+            "multiline": true
+        }
+    ],
     "suggestions": [
         {
             "name": "Heading",

@@ -13,7 +13,6 @@ async function main() {
   const receiver = new Recevier
   if (receiver.isConnected) { //inside webview2
     const home = await receiver.home()
-    console.log('ret: ', home)
     let filePath = home.Args[1] || ''
     console.log('filePath: ', filePath)
     const fileContent = filePath ? await receiver.readFile(filePath) : ''

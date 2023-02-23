@@ -4,7 +4,7 @@ import 'github-markdown-css'
 import _ from 'lodash'
 import MarkdownIt from 'markdown-it'
 import markdownContainer from 'markdown-it-container'
-import markdownTaskLists from 'markdown-it-task-lists'
+import { imageSize, taskLists, toc } from '@hedgedoc/markdown-it-plugins'
 
 import * as monaco from 'monaco-editor'
 import 'react-contexify/ReactContexify.css'
@@ -132,7 +132,7 @@ class DataPool {
       const val = matchStr.substring(1, matchStr.length - 1)
       this.cache(val)
     }
-    //replace long str with short
+    //replace long str with short 
     for (const [key, value] of Object.entries(this.pool)) {
       content = content.replaceAll(value, key)
     }
@@ -173,15 +173,18 @@ class EditorContext {
     const { mdEngine } = this
     mdEngine.use(InjectLineNumber)
     mdEngine.use(markdownContainer, 'warning')
-    mdEngine.use(markdownTaskLists)
+    //mdEngine.use(imageSize)
+    mdEngine.use(taskLists)
+    //mdEngine.use(markdownTaskLists)
   }
 
   addParser(language: string, handle: Handle) {
     addParser(language, handle)
   }
 
-  private createSuggestions(range: monaco.IRange) {
-    const kind = monaco.languages.CompletionItemKind.Function
+  private _createSuggestions(range: monaco.IRange) {
+    const kind = monaco.languages.CompletionItemKind.Snippet
+
     return this.config.suggestions.map(s => {
       let { name: label, syntax: insertText, documentation } = s
       if (documentation && documentation.startsWith('-')) {
@@ -195,6 +198,28 @@ class EditorContext {
         kind, range
       } as monaco.languages.CompletionItem
     })
+  }
+
+  private createSuggestions() {
+    const { editor, config } = this,
+      range = editor.getSelection(),
+      selected = editor.getModel().getValueInRange(range),
+      enable = editor.getPosition().column == 1 && !selected
+
+    return enable ? config.suggestions.map(s => {
+      let { name: label, syntax: insertText, documentation } = s
+      if (documentation && documentation.startsWith('-')) {
+        const markdown: monaco.IMarkdownString = {
+          value: documentation.substring(1)
+        }
+        documentation = markdown as any
+      }
+      const kind = monaco.languages.CompletionItemKind.Snippet
+      return {
+        label, insertText, documentation,
+        kind, range
+      } as monaco.languages.CompletionItem
+    }) : []
   }
 
   private onEditorScroll() {
@@ -224,19 +249,9 @@ class EditorContext {
     editor.onDidScrollChange(() => this.onEditorScroll())
 
     monaco.languages.registerCompletionItemProvider("markdown", {
-      provideCompletionItems: (model: monaco.editor.ITextModel, position: monaco.Position) => {
-        const word = model.getWordUntilPosition(position)
-        if (position.column !== 1) return { suggestions: [] }
-        const range = {
-          startLineNumber: position.lineNumber,
-          endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn
-        }
-        return {
-          suggestions: this.createSuggestions(range)
-        }
-      }
+      provideCompletionItems: () => ({
+        suggestions: this.createSuggestions()
+      })
     })
     parserList.forEach(p => {
       monaco.languages.register({ id: p.language })
@@ -252,7 +267,7 @@ class EditorContext {
               const base64_png = await blobToBase64(await clipboardItem.getType(type))
               const base64_jpeg = await pngToJpg(base64_png)
               const ratio = base64_jpeg.length / base64_png.length
-              console.log('jpeg ratio: ', ratio.toFixed(2))
+              //console.log('jpeg ratio: ', ratio.toFixed(2))
               const base64 = ratio > 1 ? base64_png : base64_jpeg
               imageText = `![Image](${this.pool.cache(base64)})`
               //console.log('imageText: ', imageText)
@@ -283,10 +298,52 @@ class EditorContext {
       return getBoolean.call(storageService, key)
     }
 
+    const getSelection = () => {
+      return editor.getModel().getValueInRange(editor.getSelection())
+    }
+
+    editor.onKeyDown((e) => {
+      if (e.code.startsWith('Key') && e.ctrlKey) {
+        const selection = getSelection()
+        const key = e.code.replace('Key', '')
+        const enhancement = this.config.enhancements.find(c => c.key == key)
+        if (enhancement) {
+          e.preventDefault()
+          e.stopPropagation()
+          if (selection) {
+            // const text = enhancement.syntax
+            let text = selection
+            const { syntax } = enhancement
+            if (enhancement.multiline) {
+              const lines = selection.split('\n').map(line => {
+                //clean up multiline syntax
+                const formats = this.config.enhancements.filter(e => e.multiline).map(e => e.syntax.split(' ')[0] + ' ')
+                formats.forEach(f => {
+                  if (line.startsWith(f)) {
+                    line = line.substring(f.length)
+                  }
+                })
+                return line.trim()
+              }).filter(t => !!t)
+                .map(l => syntax.replace('{0}', l))
+              text = lines.join('\n')
+            } else {
+              text = syntax.replace('{0}', text)
+            }
+            editor.executeEdits(null, [{
+              range: editor.getSelection(),
+              text, forceMoveMarkers: true
+            }])
+          }
+        }
+      }
+    })
+
     return editor
   }
 
   savedContent = "";
+
   hasChange() {
     return (this.savedContent !== this.getCode())
   }
@@ -369,8 +426,16 @@ interface Suggestion {
   syntax: string
   documentation: string
 }
+interface Enhancement {
+  name: string,
+  syntax: string
+  key: string
+  multiline: boolean
+}
+
 interface Config {
   suggestions: Suggestion[]
+  enhancements: Enhancement[]
 }
 
 function blobToBase64(blob: Blob) {
