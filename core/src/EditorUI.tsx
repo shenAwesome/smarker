@@ -89,14 +89,14 @@ function EditorUI({ code, context }: EditorProps) {
 
   }, [])
 
+  const { showEditor } = config
+  const _selected = showEditor ? selected : -1
+
   useEffect(() => {//on text changed
     context.setCode(text)
+    context.select(_selected)
     if ((!config.showEditor) && (text.trim() == '')) setConfig({ showEditor: true })
-    //set table of context
   }, [text])
-
-
-  const { showEditor } = config
 
   async function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>) {
     const target = (event.target as HTMLElement).closest('[x-src]'),
@@ -116,8 +116,6 @@ function EditorUI({ code, context }: EditorProps) {
       }
     }
   }
-
-  const _selected = showEditor ? selected : -1
 
   useEffect(() => {
     context.select(_selected)

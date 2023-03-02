@@ -9,4 +9,4 @@ cd /D "%~dp0"
 
 rem %msbuild% smarker.sln
 
-%devenv% "./Setup/Setup.vdproj" /Rebuild
+rem %devenv% "./Setup/Setup.vdproj" /Rebuild
