@@ -393,17 +393,23 @@ class EditorContext {
       b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
         .getBoundingClientRect().top - viewTop
     })
+
+    const { _selected: selected } = this
+    $(viewerDiv).find(`[x-block]`).removeClass('selected')
+    $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
   }
 
+  _selected = -1
   /**
    * show selection also prepare position for scolling sync
    * @param selected 
    */
-  select(selected: number) {
+  select(selected = this._selected) {
     const { viewerDiv, blocks } = this
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
     $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
     blocks.highlight(selected)
+    this._selected = selected
   }
 
   async save() {

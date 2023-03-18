@@ -19,10 +19,9 @@ namespace SMarker {
             Application.SetCompatibleTextRenderingDefault(false);
 
             var service = new CoreService();
-
+            var exeLoc = Assembly.GetExecutingAssembly().Location;
             var isDebug = false;
-            var indexPage = "file://" + Path.Combine(Path.GetDirectoryName(
-                Assembly.GetExecutingAssembly().Location), "content/index.html");
+            var indexPage = "file://" + Path.Combine(Path.GetDirectoryName(exeLoc), "content/index.html");
 
             if (service.Args[0].Contains(@"bin\Debug")) {
                 //coreHandler.Args = new string[] { "", @"D:\temp\test.md" }; 
@@ -30,15 +29,12 @@ namespace SMarker {
                 indexPage = "http://localhost:4000/";
             }
 
-
-
             Process myProcess = Process.GetCurrentProcess();
             var processExists = Process.GetProcesses().Any(
                 p => p.ProcessName.Equals(myProcess.ProcessName)
                 && p.Id != myProcess.Id);
 
-            string appName = Path.GetFileNameWithoutExtension(Assembly.GetEntryAssembly().Location);
-            //mutex = new Mutex(true, appName, out bool firstInstance);
+            string appName = Path.GetFileNameWithoutExtension(exeLoc);
             var firstInstance = !processExists;
 
             XDMessagingClient client = new XDMessagingClient();
