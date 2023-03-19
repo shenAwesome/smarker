@@ -1,12 +1,13 @@
 @media print {
 
     .markdown-body {
+        border: 12px solid transparent !important;
         z-index: 1000;
         position: static;
         top: 0;
         left: 0;
         height: auto;
-        overflow: auto;
+        overflow: visible;
 
         .selected {
             outline: none !important;
