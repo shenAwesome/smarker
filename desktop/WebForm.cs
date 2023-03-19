@@ -61,14 +61,13 @@ namespace SMarker {
 
         async void InitializeAsync() {
             var options = new CoreWebView2EnvironmentOptions("--allow-file-access-from-files");
-            var UserDataFolder = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            var UserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                          "SMarkdownEditorWeb"); ;
             var environment = await CoreWebView2Environment.CreateAsync(null, UserDataFolder, options);
             await webView21.EnsureCoreWebView2Async(environment);
 
             View.DOMContentLoaded += View_DOMContentLoaded;
-            //View.WebMessageReceived += View_WebMessageReceived;
+
             foreach (var entry in services) {
                 var service = entry.Value;
                 service.form = this;
@@ -93,9 +92,7 @@ namespace SMarker {
             if (WindowState == FormWindowState.Normal) {
                 var workingArea = Screen.FromControl(this).WorkingArea;
                 var formBounds = new Rectangle(Location, Size);
-                if (!workingArea.Contains(formBounds)) {
-                    DoCenterToScreen();
-                }
+                if (!workingArea.Contains(formBounds)) DoCenterToScreen();
             }
             bool top = TopMost;
             TopMost = true;
