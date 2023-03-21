@@ -95,10 +95,12 @@ function EditorUI({ code, context }: EditorProps) {
   useEffect(() => {//on text changed
     context.setCode(text)
     context.select(_selected)
-    if ((!config.showEditor) && (text.trim() == '')) setConfig({ showEditor: true })
+    if ((!showEditor) && (text.trim() == '')) setConfig({ showEditor: true })
   }, [text])
 
   async function viewClicked(event: SyntheticEvent<HTMLDivElement, MouseEvent>) {
+    if (!showEditor) return
+
     const target = (event.target as HTMLElement).closest('[x-src]'),
       blockIdx = target ? parseInt(target.getAttribute('x-block')) : -1,
       block = context.blocks.get(blockIdx)
