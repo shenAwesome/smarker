@@ -1,6 +1,12 @@
 # SMarker 
 
-SMarker is a lightweight and easy-to-use Markdown editor for creating and editing Markdown documents.
+SMarker is a user-friendly and lightweight Markdown editor that enables users to create and edit Markdown documents with ease.
+
+Key features of SMarker include its minimalist user interface, which provides users with an uncluttered and straightforward workspace. The editor also supports pasting images from the clipboard, enabling users to efficiently incorporate visuals into their documents. Additionally, syntax highlighting for Markdown syntax and a live preview of the document enhance the editing experience, making it easier to catch errors and improve the document's overall appearance.
+
+To speed up the creation process, SMarker includes an auto completion feature that enables users to quickly create elements with a simple keystroke (Ctrl + space). Additionally, SMarker offers support for tables, images, and links, making it easy to include these elements in your Markdown documents.
+
+Getting started with SMarker is a breeze. Simply download the smarker.msi file and double-click to install it on Windows. Once installed, users can open SMarker by either double-clicking the SMarker shortcut on the desktop or double-clicking an existing .md file.
 
 ## Features
 - A minimalist user interface
@@ -16,7 +22,7 @@ To get started with SMarker, simply download the smarker.msi. Then, double click
 
 Once the application is installed. you can open Smarker by 
 - Double-clicking the SMarker shortcut on the desktop
-- Opening a .md file by double-clicking it and selecting SMarker when prompted. 
+- Double-clicking an existing .md file. If prompted, just select SMarker as the app to open it. 
 
 ## License
 SMarker is licensed under the **It is what it is** License.  
