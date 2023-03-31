@@ -107,9 +107,10 @@ body {
 
   .code.custom {
     svg {
-      line-height: 1.15;
+      line-height: 1;
       max-width: 100%;
       height: auto !important;
+      display: block;
     }
   }
 

@@ -397,6 +397,8 @@ class EditorContext {
     const { _selected: selected } = this
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
     $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
+
+    this.onEditorScroll()
   }
 
   _selected = -1
