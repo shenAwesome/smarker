@@ -76,6 +76,10 @@ class MdEngine {
 
     private engine = new MarkdownIt()
 
+    get parserList() {
+        return parserList
+    }
+
     constructor() {
         const { engine } = this
         engine.use(markdownContainer, 'warning')
@@ -83,8 +87,8 @@ class MdEngine {
         engine.use(InjectLineNumber)
     }
 
-    get parserList() {
-        return parserList
+    private addParser(language: string, handle: Handle) {
+        addParser(language, handle)
     }
 
     async init() {
@@ -110,10 +114,6 @@ class MdEngine {
             return viz.layout(content)
         })
         return this
-    }
-
-    addParser(language: string, handle: Handle) {
-        addParser(language, handle)
     }
 
     render(code: string) {

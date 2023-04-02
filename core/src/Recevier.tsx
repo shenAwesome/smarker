@@ -23,9 +23,13 @@ if (webview) webview.addEventListener('message', (evt: any) => {
 })
 
 class Recevier {
+  private _onClose: OnClose = null;
+  private core: any
   private listeners = [] as Listener[]
 
-  core: any
+  get isConnected() {
+    return (!!this.core)
+  }
 
   constructor() {
     if (!webview) return
@@ -45,21 +49,17 @@ class Recevier {
     })
   }
 
-  get isConnected() {
-    return (!!this.core)
+  private onEvent(evt: FormEvent) {
+    const listeners = this.listeners.filter(l => l.type == evt.type)
+    for (const l of listeners) l.handle(evt)
   }
 
   public addListener(type: string, handle: EventHandle) {
     this.listeners.push(new Listener(type, handle))
   }
-  _onClose: OnClose = null;
-  onClose(onClose: OnClose) {
-    this._onClose = onClose
-  }
 
-  private onEvent(evt: FormEvent) {
-    const listeners = this.listeners.filter(l => l.type == evt.type)
-    for (const l of listeners) l.handle(evt)
+  async closeForm() {
+    await this.core.CloseForm()
   }
 
   async home() {
@@ -75,22 +75,21 @@ class Recevier {
     }
   }
 
+  onClose(onClose: OnClose) {
+    this._onClose = onClose
+  }
+
   async readFile(path: string) {
     return await this.core.ReadFile(path) as string
-  }
-
-  async writeFile(path: string, content: string) {
-    return await this.core.WriteFile(path, content) as string
-  }
-
-  async closeForm() {
-    await this.core.CloseForm()
   }
 
   async setTitle(title: string) {
     await this.core.SetTitle(title)
   }
 
+  async writeFile(path: string, content: string) {
+    return await this.core.WriteFile(path, content) as string
+  }
 }
 
 type OnClose = () => Promise<boolean>

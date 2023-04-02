@@ -154,26 +154,41 @@ function pngToJpg(dataURL: string) {
 type OnSave = (content: string) => Promise<void>
 
 class EditorContext {
+
+  static async create(code: string, onSave: OnSave) {
+    const context = new EditorContext
+    context.config = await (await fetch('./config.json')).json()
+    context.onSave = onSave
+    context.savedContent = code
+    return context
+  }
+
+  private _selected = -1
+  private _viewerDiv: HTMLDivElement
   private config: Config
-  public onSave: OnSave
+  private pool = new DataPool
+  private savedContent = "";
+
   blocks = new Blocks()
   decorations: monaco.editor.IEditorDecorationsCollection
   editor: monaco.editor.IStandaloneCodeEditor
   editorDiv: HTMLDivElement
   engine: MdEngine
-  pool = new DataPool
-  _viewerDiv: HTMLDivElement
 
-  set viewerDiv(div: HTMLDivElement) {
-    this._viewerDiv = div
-    if (div) {
-      if ((div as any)['cleanup']) (div as any)['cleanup']()
-      const onSizeChange = _.debounce(() => this.updatePosition(), 100)
-      const ob = new ResizeObserver(onSizeChange)
-      ob.observe(div)
-      const cleanup = () => ob.disconnect()
-      Object.assign(div, { cleanup })
-    }
+  public onSave: OnSave
+
+  onViewerScroll = () => {
+    const { viewerDiv, editor, blocks } = this
+    if (!isMouseInElement(viewerDiv.parentElement)) return
+    const scrollTop = viewerDiv.parentElement.scrollTop,
+      blockList = [new Block(), ...blocks.blocks],
+      topBlock = blockList.find(b => b.position.inView > scrollTop)
+    if (!topBlock) return
+    const prev = blockList[blockList.indexOf(topBlock) - 1],
+      percentage = (scrollTop - prev.position.inView)
+        / (topBlock.position.inView - prev.position.inView),
+      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
+    editor.setScrollTop(newTop)
   }
 
   get viewerDiv() {
@@ -183,24 +198,6 @@ class EditorContext {
   constructor() {
     this.select = _.debounce(this.select, 100)
     //this.updatePosition = _.debounce(this.updatePosition, 100)
-  }
-
-  private _createSuggestions(range: monaco.IRange) {
-    const kind = monaco.languages.CompletionItemKind.Snippet
-
-    return this.config.suggestions.map(s => {
-      let { name: label, syntax: insertText, documentation } = s
-      if (documentation && documentation.startsWith('-')) {
-        const markdown: monaco.IMarkdownString = {
-          value: documentation.substring(1)
-        }
-        documentation = markdown as any
-      }
-      return {
-        label, insertText, documentation,
-        kind, range
-      } as monaco.languages.CompletionItem
-    })
   }
 
   private createSuggestions() {
@@ -238,6 +235,18 @@ class EditorContext {
         / (topBlock.position.inEditor - prev.position.inEditor),
       newTop = prev.position.inView + ((topBlock.position.inView - prev.position.inView) * percentage)
     viewerDiv.parentElement.scrollTop = newTop
+  }
+
+  set viewerDiv(div: HTMLDivElement) {
+    this._viewerDiv = div
+    if (div) {
+      if ((div as any)['cleanup']) (div as any)['cleanup']()
+      const onSizeChange = _.debounce(() => this.updatePosition(), 100)
+      const ob = new ResizeObserver(onSizeChange)
+      ob.observe(div)
+      const cleanup = () => ob.disconnect()
+      Object.assign(div, { cleanup })
+    }
   }
 
   init() {
@@ -347,8 +356,6 @@ class EditorContext {
     return editor
   }
 
-  savedContent = "";
-
   hasChange() {
     return (this.savedContent !== this.getCode())
   }
@@ -358,22 +365,8 @@ class EditorContext {
     return this.pool.patch(content)
   }
 
-  onViewerScroll = () => {
-    const { viewerDiv, editor, blocks } = this
-    if (!isMouseInElement(viewerDiv.parentElement)) return
-    const scrollTop = viewerDiv.parentElement.scrollTop,
-      blockList = [new Block(), ...blocks.blocks],
-      topBlock = blockList.find(b => b.position.inView > scrollTop)
-    if (!topBlock) return
-    const prev = blockList[blockList.indexOf(topBlock) - 1],
-      percentage = (scrollTop - prev.position.inView)
-        / (topBlock.position.inView - prev.position.inView),
-      newTop = prev.position.inEditor + ((topBlock.position.inEditor - prev.position.inEditor) * percentage)
-    editor.setScrollTop(newTop)
-  }
-
   //update block position for scrolling  
-  updatePosition() {
+  private updatePosition() {
     console.log('updatePosition: ')
     const { viewerDiv, editor, blocks } = this
     const viewTop = viewerDiv.getBoundingClientRect().top
@@ -414,7 +407,6 @@ class EditorContext {
     this.updatePosition()
   }
 
-  _selected = -1
   /**
    * show selection also prepare position for scolling sync
    * @param selected 
@@ -431,14 +423,6 @@ class EditorContext {
     const content = this.getCode()
     if (this.onSave) await this.onSave(content)
     this.savedContent = content
-  }
-
-  static async create(code: string, onSave: OnSave) {
-    const context = new EditorContext
-    context.config = await (await fetch('./config.json')).json()
-    context.onSave = onSave
-    context.savedContent = code
-    return context
   }
 }
 
