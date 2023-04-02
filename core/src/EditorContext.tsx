@@ -2,20 +2,16 @@
 import $ from "cash-dom"
 import 'github-markdown-css'
 import _ from 'lodash'
-import MarkdownIt from 'markdown-it'
-import markdownContainer from 'markdown-it-container'
-import { imageSize, taskLists, toc } from '@hedgedoc/markdown-it-plugins'
 
 import * as monaco from 'monaco-editor'
 import 'react-contexify/ReactContexify.css'
 import './css/Editor.scss'
 import './manaco/userWorker'
-import { addParser, Handle, InjectLineNumber, parserList } from "./plugins/InjectLineNumber"
 
-
-import * as _actions from "monaco-editor/esm/vs/platform/actions/common/actions"
-import { StandaloneServices } from "monaco-editor/esm/vs/editor/standalone/browser/standaloneServices"
 import { createDecorator } from 'monaco-editor/esm//vs/platform/instantiation/common/instantiation'
+import { StandaloneServices } from "monaco-editor/esm/vs/editor/standalone/browser/standaloneServices"
+import * as _actions from "monaco-editor/esm/vs/platform/actions/common/actions"
+import { MdEngine } from './engine/MdEngine'
 
 //console.log('actions: ', actions)
 
@@ -164,22 +160,29 @@ class EditorContext {
   decorations: monaco.editor.IEditorDecorationsCollection
   editor: monaco.editor.IStandaloneCodeEditor
   editorDiv: HTMLDivElement
-  mdEngine = new MarkdownIt()
+  engine: MdEngine
   pool = new DataPool
-  viewerDiv: HTMLDivElement
+  _viewerDiv: HTMLDivElement
+
+  set viewerDiv(div: HTMLDivElement) {
+    this._viewerDiv = div
+    if (div) {
+      if ((div as any)['cleanup']) (div as any)['cleanup']()
+      const onSizeChange = _.debounce(() => this.updatePosition(), 100)
+      const ob = new ResizeObserver(onSizeChange)
+      ob.observe(div)
+      const cleanup = () => ob.disconnect()
+      Object.assign(div, { cleanup })
+    }
+  }
+
+  get viewerDiv() {
+    return this._viewerDiv
+  }
 
   constructor() {
     this.select = _.debounce(this.select, 100)
-    const { mdEngine } = this
-    mdEngine.use(InjectLineNumber)
-    mdEngine.use(markdownContainer, 'warning')
-    //mdEngine.use(imageSize)
-    mdEngine.use(taskLists)
-    //mdEngine.use(markdownTaskLists)
-  }
-
-  addParser(language: string, handle: Handle) {
-    addParser(language, handle)
+    //this.updatePosition = _.debounce(this.updatePosition, 100)
   }
 
   private _createSuggestions(range: monaco.IRange) {
@@ -223,6 +226,7 @@ class EditorContext {
   }
 
   private onEditorScroll() {
+    console.log('scroll')
     const { viewerDiv, editorDiv, editor, blocks } = this
     if (!isMouseInElement(editorDiv)) return
     const scrollTop = editor.getScrollTop(),
@@ -253,7 +257,8 @@ class EditorContext {
         suggestions: this.createSuggestions()
       })
     })
-    parserList.forEach(p => {
+
+    this.engine.parserList.forEach(p => {
       monaco.languages.register({ id: p.language })
     })
 
@@ -367,11 +372,25 @@ class EditorContext {
     editor.setScrollTop(newTop)
   }
 
+  //update block position for scrolling  
+  updatePosition() {
+    console.log('updatePosition: ')
+    const { viewerDiv, editor, blocks } = this
+    const viewTop = viewerDiv.getBoundingClientRect().top
+    blocks.blocks.forEach(b => {
+      b.position.inEditor = editor.getTopForLineNumber(b.start)
+      b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
+        .getBoundingClientRect().top - viewTop
+    })
+    this.onEditorScroll()
+  }
+
   setCode(code: string) {
-    const { viewerDiv, editor, mdEngine, blocks } = this
+    const { viewerDiv, editor, engine, blocks } = this
 
     const view = $(viewerDiv)
-    view.html(mdEngine.render(code))
+    view.html(engine.render(code))
+    view.parent().toggleClass('empty', view.children().length == 0)
 
     const simplified = this.pool.simplify(code)
 
@@ -386,19 +405,13 @@ class EditorContext {
       $(ele).attr('x-block', blocks.length.toString())
       blocks.addBlock($(ele).attr('x-src'))
     })
-    //update block position for scrolling
-    const viewTop = viewerDiv.getBoundingClientRect().top
-    blocks.blocks.forEach(b => {
-      b.position.inEditor = editor.getTopForLineNumber(b.start)
-      b.position.inView = viewerDiv.querySelector(`[x-block='${b.index}']`)
-        .getBoundingClientRect().top - viewTop
-    })
+
 
     const { _selected: selected } = this
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
     $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
 
-    this.onEditorScroll()
+    this.updatePosition()
   }
 
   _selected = -1
@@ -479,3 +492,4 @@ function isMouseInElement(ele: HTMLElement) {
 
 export { EditorContext }
 export type { OnSave }
+

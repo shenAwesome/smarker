@@ -1,28 +1,20 @@
+import mermaid from "mermaid"
 import React from "react"
 import ReactDOM from "react-dom"
 import { EditorContext, OnSave } from "./EditorContext"
 import { EditorUI } from "./EditorUI"
-import { Viz } from "@aslab/graphvizjs"
-import mermaid from "mermaid"
+import { MdEngine } from "./engine/MdEngine"
+
+mermaid.mermaidAPI.initialize({
+  pie: {
+    useWidth: 500
+  }
+})
 
 async function createEditor(container: HTMLElement,
   code: string, onSave?: OnSave) {
   const context = await EditorContext.create(code, onSave)
-  const viz = await Viz.create()
-  context.addParser('mermaid', (content, idx) => {
-    const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
-    return svg
-  })
-  context.addParser('DOT', content => {
-    content = content.trim()
-    if (!(content.startsWith('digraph') || content.startsWith('graph'))) {
-      const head = content.includes('->') ? 'digraph' : 'graph'
-      content = ` ${head} { 
-        ${content}
-      }`
-    }
-    return viz.layout(content)
-  })
+  context.engine = await (new MdEngine()).init()
 
   ReactDOM.render(
     <React.StrictMode>

@@ -1,6 +1,5 @@
 
 import { useSize } from "ahooks"
-import $ from "cash-dom"
 import classNames from "classnames"
 import 'github-markdown-css'
 import _ from 'lodash'
@@ -9,8 +8,8 @@ import { Item, ItemParams, Menu, useContextMenu } from 'react-contexify'
 import 'react-contexify/ReactContexify.css'
 import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
 import SplitPane from 'react-split-pane'
-import './css/Editor.scss'
 import { EditorContext } from "./EditorContext"
+import './css/Editor.scss'
 const MENU_ID = 'mdEditorMenu'
 
 function useRefresh() {
