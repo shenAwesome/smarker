@@ -38,6 +38,7 @@ async function main() {
       location.reload()//reload whole page 
     })
 
+    editor.openURL = (url: string) => receiver.openURL(url)
   } else {//inside web browser, for testing
     await createEditor(container, "helloWorld")
   }

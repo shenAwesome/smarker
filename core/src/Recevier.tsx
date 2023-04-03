@@ -62,6 +62,10 @@ class Recevier {
     await this.core.CloseForm()
   }
 
+  async openURL(url: string) {
+    await this.core.OpenURL(url)
+  }
+
   async home() {
     return JSON.parse(await this.core.Home()) as {
       Args: string[],

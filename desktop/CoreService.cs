@@ -108,5 +108,9 @@ namespace SMarker {
             closeConfirmed = true;
             form.Close();
         }
+
+        public void OpenURL(string url) {
+            Process.Start(url);
+        }
     }
 }

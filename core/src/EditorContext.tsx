@@ -154,6 +154,9 @@ function pngToJpg(dataURL: string) {
 type OnSave = (content: string) => Promise<void>
 
 class EditorContext {
+  openURL(url: string) {
+    console.log('openURL', url)
+  }
 
   static async create(code: string, onSave: OnSave) {
     const context = new EditorContext
@@ -223,7 +226,7 @@ class EditorContext {
   }
 
   private onEditorScroll() {
-    console.log('scroll')
+    //console.log('scroll')
     const { viewerDiv, editorDiv, editor, blocks } = this
     if (!isMouseInElement(editorDiv)) return
     const scrollTop = editor.getScrollTop(),
@@ -367,7 +370,7 @@ class EditorContext {
 
   //update block position for scrolling  
   private updatePosition() {
-    console.log('updatePosition: ')
+    //console.log('updatePosition: ')
     const { viewerDiv, editor, blocks } = this
     const viewTop = viewerDiv.getBoundingClientRect().top
     blocks.blocks.forEach(b => {
@@ -399,11 +402,16 @@ class EditorContext {
       blocks.addBlock($(ele).attr('x-src'))
     })
 
-
     const { _selected: selected } = this
     $(viewerDiv).find(`[x-block]`).removeClass('selected')
     $(viewerDiv).find(`[x-block='${selected}']`).addClass('selected')
-
+    $(viewerDiv).find('a').each((i, ele) => {
+      const href = $(ele).attr('href')
+      $(ele).on('click', (e) => {
+        this.openURL(href)
+        e.preventDefault()
+      })
+    })
     this.updatePosition()
   }
 

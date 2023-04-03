@@ -59,6 +59,7 @@ namespace SMarker {
 
                 form.AddService("Core", service);
                 Application.Run(form);
+
             }
         }
     }
