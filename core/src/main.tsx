@@ -40,7 +40,10 @@ async function main() {
 
     editor.openURL = (url: string) => receiver.openURL(url)
   } else {//inside web browser, for testing
-    await createEditor(container, "helloWorld")
+    const content = `
+    
+    `
+    await createEditor(container, content)
   }
 }
 

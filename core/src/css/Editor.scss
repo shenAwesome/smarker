@@ -14,14 +14,44 @@ body {
   flex-direction: column;
   cursor: default;
 
-  &.hideEditor {
+
+  .SPane.right {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+  }
+
+  .help {
+    display: none;
+  }
+
+  &.showEditor {
     .SPane.right {
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      right: 0;
-      top: 0;
-      bottom: 0;
+      position: relative;
+      z-index: 0;
+    }
+
+    .empty>.help {
+      color: rgba(0, 0, 0, 0.4);
+      display: block;
+      margin: 2em;
+      font-family: Arial, Helvetica, sans-serif;
+
+      h3 {
+        margin-bottom: 3px;
+      }
+
+      .shortcut {
+        margin-bottom: 3px;
+
+        span:first-child {
+          width: 7em;
+          display: inline-block;
+        }
+      }
     }
   }
 
@@ -58,7 +88,6 @@ body {
       background: white;
       color: black;
       overflow: auto;
-      position: relative;
       overflow-x: hidden;
     }
   }

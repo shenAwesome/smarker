@@ -432,6 +432,18 @@ class EditorContext {
     if (this.onSave) await this.onSave(content)
     this.savedContent = content
   }
+
+  help() {
+    const content1 = `<h3>at the start of a line</h3> 
+      <div class='shortcut'><span>Insert element</span> <span> Ctrl + space </span></div> 
+      <h3>with code selection</h3> 
+    `
+    const content2 = this.config.enhancements.map(e => {
+      return `<div class='shortcut'> <span>${e.name} </span> 
+      <span> Ctrl + ${e.key} </span> </div>`
+    }).join(' ')
+    return content1 + content2
+  }
 }
 
 interface Suggestion {

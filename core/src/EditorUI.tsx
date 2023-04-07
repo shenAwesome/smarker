@@ -61,6 +61,7 @@ function EditorUI({ code, context }: EditorProps) {
   const { show } = useContextMenu({ id: MENU_ID })
   const size = useSize(document.querySelector('body'))
   const splitSize = Math.min(config.splitSize, (size ? size.width : 4000) - 200)
+  const helpRef = React.createRef<HTMLDivElement>()
 
   function sleep(delay: number) {
     return new Promise<void>(resolve => {
@@ -85,6 +86,8 @@ function EditorUI({ code, context }: EditorProps) {
     }, 200))
 
     editor.onDidChangeCursorPosition(updateSelection)
+
+    helpRef.current.innerHTML = context.help()
 
   }, [])
 
@@ -145,7 +148,7 @@ function EditorUI({ code, context }: EditorProps) {
   }, 200)
 
   return <>
-    <div className={classNames("MDEditor", { hideEditor: !showEditor })}    >
+    <div className={classNames("MDEditor", { showEditor })}    >
       <SplitPane split="vertical" minSize={minSize} maxSize={-minSize}
         size={splitSize} onChange={size => setConfig({ splitSize: size })} >
         <div className='SPane left'>
@@ -156,6 +159,7 @@ function EditorUI({ code, context }: EditorProps) {
         <div className='SPane right mdView' onScroll={context.onViewerScroll} onContextMenu={onContextMenu}>
           <div className='markdown-body' ref={createRef(context, "viewerDiv")}
             onClick={viewClicked}></div>
+          <div className='help' ref={helpRef}></div>
         </div>
       </SplitPane>
     </div>
