@@ -37,25 +37,33 @@ function deleteAction(ids: string[]) {
   //console.log(list)
 }
 
+function createCanvas(width: number, height: number, backgroundColor?: string) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  ctx.imageSmoothingEnabled = false
+  if (backgroundColor) {
+    ctx.fillStyle = backgroundColor
+    ctx.fillRect(0, 0, width, height)
+  }
+  return { canvas, ctx }
+}
+
 async function svgToImg(container: HTMLDivElement) {
   const svgElements = Array.from(container.querySelectorAll('svg'))
   const imgs = [] as HTMLImageElement[]
   for (const svgElement of svgElements) {
     const { clientWidth: width, clientHeight: height } = svgElement
-    const canvas = document.createElement('canvas')
-    canvas.width = width
-    canvas.height = height
-    const ctx = canvas.getContext('2d')
-    ctx.imageSmoothingEnabled = false
-    ctx.fillStyle = "white"
-    ctx.fillRect(0, 0, width, height)
+    const { canvas, ctx } = createCanvas(width, height)
     const canvg = await Canvg.from(ctx, svgElement.outerHTML)
-    await canvg.render({ ignoreClear: true })
-    const src = canvas.toDataURL('image/png')
+    await canvg.render()
+    const { canvas: canvas2, ctx: ctx2 } = createCanvas(width, height, 'white')
+    ctx2.drawImage(canvas, 0, 0)
+    const src = canvas2.toDataURL('image/png')
     const img = Object.assign(document.createElement('img'), {
       src, width, height
     })
-    img.style.background = 'white'
     svgElement.parentNode.replaceChild(img, svgElement)
     imgs.push(img)
   }
@@ -435,6 +443,7 @@ class Editor {
       })
     })
 
+    svgToImg(this.viewerDiv)
     this.updatePosition()
   }
 
