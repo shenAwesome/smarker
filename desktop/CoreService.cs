@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
@@ -115,10 +116,18 @@ namespace SMarker {
         }
 
         public void SendEmail(string body) {
-            Outlook.Application outlookApp = new Outlook.Application();
-            Outlook.MailItem mailItem = (Outlook.MailItem)outlookApp.CreateItem(Outlook.OlItemType.olMailItem);
-            mailItem.HTMLBody = body; 
-            mailItem.Display();
+            for (int i = 0; i < 3; i++) {
+                try {
+                    Outlook.Application outlookApp = new Outlook.Application();
+                    Outlook.MailItem mailItem = (Outlook.MailItem)outlookApp.CreateItem(Outlook.OlItemType.olMailItem);
+                    mailItem.HTMLBody = body;
+                    mailItem.Display();
+                    // If the method succeeds, break out of the loop
+                    break;
+                } catch (Exception ex) {
+                    Thread.Sleep(500);
+                }
+            }
         }
     }
 }

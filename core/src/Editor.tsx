@@ -47,8 +47,10 @@ async function svgToImg(container: HTMLDivElement) {
     canvas.height = height
     const ctx = canvas.getContext('2d')
     ctx.imageSmoothingEnabled = false
+    ctx.fillStyle = "white"
+    ctx.fillRect(0, 0, width, height)
     const canvg = await Canvg.from(ctx, svgElement.outerHTML)
-    await canvg.render()
+    await canvg.render({ ignoreClear: true })
     const src = canvas.toDataURL('image/png')
     const img = Object.assign(document.createElement('img'), {
       src, width, height
