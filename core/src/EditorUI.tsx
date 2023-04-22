@@ -7,8 +7,9 @@ import React, { SyntheticEvent, useEffect, useState } from "react"
 import { Item, ItemParams, Menu, useContextMenu } from 'react-contexify'
 import 'react-contexify/ReactContexify.css'
 import { FaArrowDown, FaArrowUp, FaEdit, FaPrint } from 'react-icons/fa'
+import { FiMail } from 'react-icons/fi'
 import SplitPane from 'react-split-pane'
-import { EditorContext } from "./EditorContext"
+import { Editor } from "./Editor"
 import './css/Editor.scss'
 const MENU_ID = 'mdEditorMenu'
 
@@ -44,7 +45,7 @@ function createRef<T>(obj: T, key: keyof T) {
 
 interface EditorProps {
   code: string
-  context: EditorContext
+  context: Editor
 }
 
 
@@ -144,6 +145,9 @@ function EditorUI({ code, context }: EditorProps) {
       case "toBottom":
         viewerContainer.scrollTop = viewerContainer.scrollHeight
         break
+      case "sendMail":
+        context.sendEmail()
+        break
     }
   }, 200)
 
@@ -167,6 +171,7 @@ function EditorUI({ code, context }: EditorProps) {
     <Menu id={MENU_ID} theme='dark' animation=''>
       <Item id="edit" onClick={handleItemClick}> <FaEdit /> Edit</Item>
       <Item id="print" onClick={handleItemClick}><FaPrint />Print</Item>
+      <Item id="sendMail" onClick={handleItemClick}><FiMail />Email</Item>
       <Item id="toTop" onClick={handleItemClick}><FaArrowUp />to Top</Item>
       <Item id="toBottom" onClick={handleItemClick}><FaArrowDown />to Bottom</Item>
     </Menu>

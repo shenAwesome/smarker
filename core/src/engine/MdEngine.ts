@@ -93,6 +93,10 @@ class MdEngine {
 
     async init() {
         mermaid.mermaidAPI.initialize({
+            securityLevel: 'strict',
+            flowchart: {
+                htmlLabels: false
+            },
             pie: {
                 useWidth: 500
             }

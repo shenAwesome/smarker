@@ -22,7 +22,7 @@ if (webview) webview.addEventListener('message', (evt: any) => {
   }
 })
 
-class Recevier {
+class Receiver {
   private _onClose: OnClose = null;
   private core: any
   private listeners = [] as Listener[]
@@ -62,10 +62,6 @@ class Recevier {
     await this.core.CloseForm()
   }
 
-  async openURL(url: string) {
-    await this.core.OpenURL(url)
-  }
-
   async home() {
     return JSON.parse(await this.core.Home()) as {
       Args: string[],
@@ -83,8 +79,16 @@ class Recevier {
     this._onClose = onClose
   }
 
+  async openURL(url: string) {
+    await this.core.OpenURL(url)
+  }
+
   async readFile(path: string) {
     return await this.core.ReadFile(path) as string
+  }
+
+  async sendEmail(body: string) {
+    await this.core.SendEmail(body)
   }
 
   async setTitle(title: string) {
@@ -103,4 +107,4 @@ class Listener {
   constructor(public type: string, public handle: EventHandle) { }
 }
 
-export { Recevier }
+export { Receiver }

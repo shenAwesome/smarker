@@ -8,6 +8,7 @@ using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Outlook = Microsoft.Office.Interop.Outlook;
 
 namespace SMarker {
 
@@ -111,6 +112,13 @@ namespace SMarker {
 
         public void OpenURL(string url) {
             Process.Start(url);
+        }
+
+        public void SendEmail(string body) {
+            Outlook.Application outlookApp = new Outlook.Application();
+            Outlook.MailItem mailItem = (Outlook.MailItem)outlookApp.CreateItem(Outlook.OlItemType.olMailItem);
+            mailItem.HTMLBody = body; 
+            mailItem.Display();
         }
     }
 }
