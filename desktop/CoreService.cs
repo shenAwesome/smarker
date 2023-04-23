@@ -70,7 +70,7 @@ namespace SMarker {
             if (path == "") {
                 SaveFileDialog saveFileDialog1 = new SaveFileDialog {
                     Filter = "Markdown File|*.md",
-                    Title = "Save an Markdown File"
+                    Title = "Save a Markdown File"
                 };
                 saveFileDialog1.ShowDialog();
                 path = saveFileDialog1.FileName;
@@ -118,12 +118,13 @@ namespace SMarker {
         public void SendEmail(string body) {
             for (int i = 0; i < 3; i++) {
                 try {
-                    Outlook.Application outlookApp = new Outlook.Application();
-                    Outlook.MailItem mailItem = (Outlook.MailItem)outlookApp.CreateItem(Outlook.OlItemType.olMailItem);
+                    var outlookApp = new Outlook.Application();
+                    var mailItem = (Outlook.MailItem)outlookApp.CreateItem(Outlook.OlItemType.olMailItem);
+                    var inspector = mailItem.GetInspector;
                     mailItem.HTMLBody = body;
-                    mailItem.Display();
-                    // If the method succeeds, break out of the loop
-                    break;
+                    mailItem.Display(false);
+                    inspector.Activate();
+                    break; // If the method succeeds, break out of the loop
                 } catch (Exception ex) {
                     Thread.Sleep(500);
                 }
