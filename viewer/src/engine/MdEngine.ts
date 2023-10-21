@@ -7,6 +7,7 @@ import Renderer from "markdown-it/lib/renderer"
 import Token from "markdown-it/lib/token"
 
 import { Viz } from "@aslab/graphvizjs"
+import * as echarts from 'echarts'
 import mermaid from "mermaid"
 
 import "./MdEngine.scss"
@@ -76,6 +77,10 @@ class MdEngine {
 
     private engine = new MarkdownIt()
 
+    get parserList() {
+        return parserList
+    }
+
     constructor() {
         const { engine } = this
         engine.use(markdownContainer, 'warning')
@@ -83,20 +88,19 @@ class MdEngine {
         engine.use(InjectLineNumber)
     }
 
-    get parserList() {
-        return parserList
+    private addParser(language: string, handle: Handle) {
+        addParser(language, handle)
     }
 
     async init() {
         mermaid.mermaidAPI.initialize({
-            pie: {
-                useWidth: 500
-            }
+            securityLevel: 'strict',
+            flowchart: { htmlLabels: false },
+            pie: { useWidth: 500 }
         })
         const viz = await Viz.create()
         this.addParser('mermaid', (content, idx) => {
             const svg = mermaid.mermaidAPI.render('mermaid_' + idx, content)
-            console.log('svg: ', svg)
             return svg
         })
         this.addParser('DOT', content => {
@@ -109,11 +113,34 @@ class MdEngine {
             }
             return viz.layout(content)
         })
+        this.addParser('TABLE', content => {
+            content = content.trim()
+            const rows = content.split('\n')
+            const head = rows.shift().split(',').map(c => c.trim()).map(c => `<th>${c}</th>`).join('')
+            const body = rows.map(r => r.split(',').map(c => c.trim()).map(c => `<td>${c}</td>`).join(''))
+            const bodyStr = body.map(b => `<tr>${b}</tr>`).join('')
+            const ret = `<table>
+                <thead><tr>${head}</tr></thead>
+                <tbody>${bodyStr}</tbody>
+            </table>`
+            return ret
+        })
+        this.addParser('CHART', content => {
+            // In SSR mode the first parameter does not need to be passed in as a DOM object
+            const chart = echarts.init(null, null, {
+                renderer: 'svg', // must use SVG mode
+                ssr: true, // enable SSR
+                width: 640, // need to specify height and width
+                height: 480
+            })
+            const script = `({
+                animation: false,
+                ${content} 
+            })`.split('\n').join(' ')
+            chart.setOption(eval(script))
+            return chart.renderToSVGString()
+        })
         return this
-    }
-
-    addParser(language: string, handle: Handle) {
-        addParser(language, handle)
     }
 
     render(code: string) {

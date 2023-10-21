@@ -1,4 +1,7 @@
 .markdown-body {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+
   width: 43em;
   margin: 0 auto;
   border: 12px solid silver;
