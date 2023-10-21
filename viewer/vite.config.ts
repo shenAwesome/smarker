@@ -2,11 +2,14 @@ import { defineConfig } from 'vite'
 import { splitVendorChunkPlugin } from 'vite'
 //import { viteSingleFile } from "vite-plugin-singlefile"
 //import { terser } from 'rollup-plugin-terser'
-//import { visualizer } from "rollup-plugin-visualizer" 
+import { visualizer } from "rollup-plugin-visualizer"
 import { viteSingleFile } from "vite-plugin-singlefile"
 
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [viteSingleFile(), visualizer({
+    emitFile: true,
+    filename: "stats.html",
+  })],
   build: {
     chunkSizeWarningLimit: 50000
   },
