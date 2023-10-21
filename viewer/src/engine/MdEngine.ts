@@ -9,6 +9,7 @@ import Token from "markdown-it/lib/token"
 import { Viz } from "@aslab/graphvizjs"
 import * as echarts from 'echarts'
 import mermaid from "mermaid"
+import JSON5 from 'json5'
 
 import "./MdEngine.scss"
 
@@ -133,11 +134,10 @@ class MdEngine {
                 width: 640, // need to specify height and width
                 height: 480
             })
-            const script = `({
+            chart.setOption(JSON5.parse(`{
                 animation: false,
                 ${content} 
-            })`.split('\n').join(' ')
-            chart.setOption(eval(script))
+            }` ))
             return chart.renderToSVGString()
         })
         return this
