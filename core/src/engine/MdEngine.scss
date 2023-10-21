@@ -1,4 +1,7 @@
 .markdown-body {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+
   width: 43em;
   margin: 0 auto;
   border: 12px solid silver;
@@ -12,6 +15,17 @@
 
   table {
     width: auto;
+
+    thead th {
+      color: white;
+      background-color: black;
+      border: 1px solid black;
+      border-right: 1px solid silver;
+
+      &:last-child {
+        border-right: 1px solid black;
+      }
+    }
   }
 
   .selected {

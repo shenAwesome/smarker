@@ -56,16 +56,23 @@ async function svgToImg(container: HTMLDivElement) {
   for (const svgElement of svgElements) {
     const { clientWidth: width, clientHeight: height } = svgElement
     const { canvas, ctx } = createCanvas(width, height)
-    const canvg = await Canvg.from(ctx, svgElement.outerHTML)
-    await canvg.render()
-    const { canvas: canvas2, ctx: ctx2 } = createCanvas(width, height, 'white')
-    ctx2.drawImage(canvas, 0, 0)
-    const src = canvas2.toDataURL('image/png')
-    const img = Object.assign(document.createElement('img'), {
-      src, width, height
-    })
-    svgElement.parentNode.replaceChild(img, svgElement)
-    imgs.push(img)
+    let canvg = null as Canvg
+    try {
+      canvg = await Canvg.from(ctx, svgElement.outerHTML)
+    } catch (e) {
+
+    }
+    if (canvg) {
+      await canvg.render()
+      const { canvas: canvas2, ctx: ctx2 } = createCanvas(width, height, 'white')
+      ctx2.drawImage(canvas, 0, 0)
+      const src = canvas2.toDataURL('image/png')
+      const img = Object.assign(document.createElement('img'), {
+        src, width, height
+      })
+      svgElement.parentNode.replaceChild(img, svgElement)
+      imgs.push(img)
+    }
   }
   return () => {
     imgs.forEach((img, idx) => {

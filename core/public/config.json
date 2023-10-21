@@ -122,6 +122,11 @@
             "documentation": "To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column."
         },
         {
+            "name": "Table (csv format)",
+            "syntax": "```TABLE\nheader1, header2\n cell1, cell2\n cell3, cell4\n```",
+            "documentation": "Table in csv format."
+        },
+        {
             "name": "Strikethrough",
             "syntax": "~~Strikethrough~~",
             "documentation": "Add ~~ before and after a word or phrase."
@@ -130,6 +135,11 @@
             "name": "Task List",
             "syntax": "- [x] task2\n- [x] task2\n- [ ] task3",
             "documentation": "preface list items with a hyphen and space followed by [ ]. To mark a task as complete, use [x]."
+        },
+        {
+            "name": "Chart",
+            "syntax": "```CHART\nxAxis: {\n    type: 'category',\n    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat','Sun']\n},\nyAxis: {\n    type: 'value'\n},\nseries: [\n    {\n        data: [150, 230, 224, 218, 135, 147, 260],\n        type: 'line'\n    }\n]\n```",
+            "documentation": "-[echarts](https://echarts.apache.org/examples/en/index.html)"
         }
     ]
 }
